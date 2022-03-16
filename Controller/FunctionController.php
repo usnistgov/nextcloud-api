@@ -1,5 +1,7 @@
 <?php
 
+include 'GlobalVars.php';
+
 class FunctionController extends BaseController
 {
 	/**
@@ -27,7 +29,7 @@ class FunctionController extends BaseController
 		{
 			$this->group();
 		}
-		elseif ($resource == 'EXTSTORAGE') // "/genapi.php/extstorage/" group of endpoints
+		elseif ($resource == 'EXTSTORAGES') // "/genapi.php/extstorage/" group of endpoints
 		{
 			$this->extStorage();
 		}
@@ -38,9 +40,7 @@ class FunctionController extends BaseController
 		else //Unavailable/unsupported resource
 		{
 			$strErrorDesc = $resource . ' is not an available resource';
-			//$strErrorHeader = 'HTTP/1.1 404 Resource not found';
-
-			//$this->sendErrorOutput($strErrorDesc, $strErrorHeader);
+			
 			$this->SendError404Output($strErrorDesc);
 		}
 	}
@@ -52,9 +52,7 @@ class FunctionController extends BaseController
 	private function group()
 	{
 		$strErrorDesc = '';
-		//$strErrorHeader = '';
-
-		//$requestMethod = strtoupper($_SERVER["REQUEST_METHOD"]);
+		
 		$requestMethod = $this->getRequestMethod();
 		$arrQueryUri = $this->getUriSegments();
 
@@ -67,9 +65,7 @@ class FunctionController extends BaseController
 			else
 			{
 				$strErrorDesc = $requestMethod . ' ' . $this->getUri() . ' is not an available Method and Endpoint';
-				//$strErrorHeader = 'HTTP/1.1 404 Not found';
-
-				//$this->sendErrorOutput($strErrorDesc, $strErrorHeader);
+				
 				$this->sendError404Output($strErrorDesc);
 			}
 		}
@@ -99,7 +95,6 @@ class FunctionController extends BaseController
 	private function extStorage()
 	{
 		$strErrorDesc = '';
-		//$strErrorHeader = '';
 
 		$requestMethod = $this->getRequestMethod();
 		$arrQueryUri = $this->getUriSegments();
@@ -113,18 +108,14 @@ class FunctionController extends BaseController
 			else
 			{
 				$strErrorDesc = $requestMethod . ' ' . $this->getUri() . ' is not an available Method and Endpoint';
-				//$strErrorHeader = 'HTTP/1.1 404 Not found';
 
-				//$this->sendErrorOutput($strErrorDesc, $strErrorHeader);
 				$this->sendError404Output($strErrorDesc);
 			}
 		}
 		else
 		{
 			$strErrorDesc = $requestMethod . ' is not an available request Method';
-			//$strErrorHeader = 'HTTP/1.1 405 Method not allowed';
 
-			//$this->sendErrorOutput($strErrorDesc, $strErrorHeader);
 			$this->sendError405Output($strErrorDesc);
 		}
 	}
