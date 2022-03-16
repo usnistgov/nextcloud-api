@@ -1,7 +1,5 @@
 <?php
 
-include 'GlobalVars.php';
-
 class FunctionController extends BaseController
 {
 	/**
@@ -83,7 +81,7 @@ class FunctionController extends BaseController
 	 */
 	private function listGroup()
 	{
-		$command = globalVars::$occ . ' group:list';
+		$command = $occ . ' group:list';
 		if (exec($command, $arrGroup))
 		{
 			$responseData = json_encode($arrGroup);
@@ -123,7 +121,7 @@ class FunctionController extends BaseController
 
 	private function listExtStorage()
 	{
-		$command = globalVars::$occ . ' files_external:list';
+		$command = $occ . ' files_external:list';
 		if (exec($command, $arrExtStorage))
 		{
 			$responseData = json_encode($arrExtStorage);

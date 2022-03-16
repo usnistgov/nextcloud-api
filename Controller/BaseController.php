@@ -1,5 +1,5 @@
 <?php
-class BaseController
+class BaseController extends GlobalVars
 {
 	/**
 	 * __call magic method
