@@ -27,7 +27,7 @@ class FunctionController extends BaseController
 	{
 		$arrQueryUri = $this->getUriSegments();
 
-		if (count($arrQueryUri < 4)) // "Invalid endpoint"
+		if (count($arrQueryUri) < 4) // "Invalid endpoint"
 		{
 			$strErrorDesc = $this->getUri() . ' is not a valid endpoint';
 
@@ -85,9 +85,8 @@ class FunctionController extends BaseController
 		else // unsupported method
 		{
 			$strErrorDesc = $requestMethod . ' is not an available request Method';
-			$strErrorHeader = 'HTTP/1.1 405 Method not allowed';
-
-			$this->sendErrorOutput($strErrorDesc, $strErrorHeader);
+			
+			$this->sendError405Output($strErrorDesc);
 		}
 	}
 	
