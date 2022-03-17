@@ -16,6 +16,11 @@ class FunctionController extends BaseController
 	 */
 
 	/**
+	 * Path to occ command
+	 */
+	private static $occ = 'php /var/www/nextcloud/occ';
+
+	/**
 	 * All resource endpoints
 	 */
 	public function controller()
@@ -81,7 +86,7 @@ class FunctionController extends BaseController
 	 */
 	private function listGroup()
 	{
-		$command = $occ . ' group:list';
+		$command = self::$occ . ' group:list';
 		if (exec($command, $arrGroup))
 		{
 			$responseData = json_encode($arrGroup);
@@ -121,7 +126,7 @@ class FunctionController extends BaseController
 
 	private function listExtStorage()
 	{
-		$command = $occ . ' files_external:list';
+		$command = self::$occ . ' files_external:list';
 		if (exec($command, $arrExtStorage))
 		{
 			$responseData = json_encode($arrExtStorage);

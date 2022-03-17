@@ -1,6 +1,5 @@
 # test file
-test.php
-test2.php
+test*.php
 
 # vscode directory
 .vscode/*
