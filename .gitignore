@@ -1,5 +1,8 @@
 # test file
 test*.php
 
+# shell scripts
+*.sh
+
 # vscode directory
 .vscode/*
