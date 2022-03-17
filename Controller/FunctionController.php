@@ -26,25 +26,35 @@ class FunctionController extends BaseController
 	public function controller()
 	{
 		$arrQueryUri = $this->getUriSegments();
-		$resource = strtoupper($arrQueryUri[3]);
 
-		if ($resource == 'GROUPS') // "/genapi.php/groups/" group of endpoints
+		if (count($arrQueryUri < 4)) // "Invalid endpoint"
 		{
-			$this->group();
+			$strErrorDesc = $this->getUri() . ' is not a valid endpoint';
+
+			$this->sendError404Output($strErrorDesc);
 		}
-		elseif ($resource == 'EXTSTORAGES') // "/genapi.php/extstorage/" group of endpoints
+		else
 		{
-			$this->extStorage();
-		}
-		elseif ($resource == 'TEST') // "/genapi.php/test/" Endpoint - prints Method and URI
-		{
-			$this->test();
-		}
-		else //Unavailable/unsupported resource
-		{
-			$strErrorDesc = $resource . ' is not an available resource';
-			
-			$this->SendError404Output($strErrorDesc);
+			$resource = strtoupper($arrQueryUri[3]);
+
+			if ($resource == 'GROUPS') // "/genapi.php/groups/" group of endpoints
+			{
+				$this->group();
+			}
+			elseif ($resource == 'EXTSTORAGES') // "/genapi.php/extstorage/" group of endpoints
+			{
+				$this->extStorage();
+			}
+			elseif ($resource == 'TEST') // "/genapi.php/test/" Endpoint - prints Method and URI
+			{
+				$this->test();
+			}
+			else //Unavailable/unsupported resource
+			{
+				$strErrorDesc = $resource . ' is not an available resource';
+				
+				$this->SendError404Output($strErrorDesc);
+			}
 		}
 	}
 
