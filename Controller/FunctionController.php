@@ -77,7 +77,7 @@ class FunctionController extends BaseController
 	{
 		$strErrorDesc = '';
 		
-		$requrestMethod = $this->GetRequestMethod();
+		$requrestMethod = $this->getRequestMethod();
 		$arrQueryUri = $this->getUriSegments();
 
 		if ($requestMethod == 'GET') // Get method
