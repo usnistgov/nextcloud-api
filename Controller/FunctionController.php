@@ -1,5 +1,8 @@
 <?php
 
+use \Firebase\JWT\JWT;
+use \Firebase\JWT\key;
+
 class FunctionController extends BaseController
 {
 	/**
@@ -10,15 +13,19 @@ class FunctionController extends BaseController
 	 * {resource} can be one of the following
 	 * - Files (UNAVAILABLE)
 	 * - Users (UNAVAILABLE)
-	 * - Groups (UNAVAILABLE)
+	 * - Groups
 	 * - ExtStorage (UNAVAILABLE) External Storage
 	 * - Test (Returns Method and Query uri)
+	 * - Auth
 	 */
 
 	/**
 	 * Path to occ command
 	 */
 	private static $occ = 'php /var/www/nextcloud/occ';
+
+	// JWT key
+	private static $key = 'privatekey';
 
 	/**
 	 * All resource endpoints
@@ -36,14 +43,18 @@ class FunctionController extends BaseController
 		else
 		{
 			$resource = strtoupper($arrQueryUri[3]);
-
-			if ($resource == 'GROUPS') // "/genapi.php/groups/" group of endpoints
+			
+			if ($resource == 'AUTH')
 			{
-				$this->group();
+				$this->auth(); // "/genapi.php/auth/" Endpoint
+			}
+			elseif ($resource == 'GROUPS') // "/genapi.php/groups/" group of endpoints
+			{
+				$this->groups();
 			}
 			elseif ($resource == 'EXTSTORAGES') // "/genapi.php/extstorage/" group of endpoints
 			{
-				$this->extStorage();
+				$this->extStorages();
 			}
 			elseif ($resource == 'TEST') // "/genapi.php/test/" Endpoint - prints Method and URI
 			{
@@ -60,9 +71,60 @@ class FunctionController extends BaseController
 
 
 	/**
+	 * Auth resource endpoints
+	 */
+	private function auth()
+	{
+		$strErrorDesc = '';
+		
+		$requrestMethod = $this->GetRequestMethod();
+		$arrQueryUri = $this->getUriSegments();
+
+		if ($requestMethod == 'GET') // Get method
+		{
+			if (count($arrQueryUri) == 4) // "/genapi.php/auth" Endpoing - returns authentication token
+			{
+				$this->getAuth();
+			}
+			else
+			{
+				$strErrorDesc = $requestMethod . ' ' . $this->getUri() . ' is not an available Method and Endpoint';
+				
+				$this->sendError404Output($strErrorDesc);
+			}
+		}
+		else // unsupported method
+		{
+			$strErrorDesc = $requestMethod . ' is not an available request Method';
+			
+			$this->sendError405Output($strErrorDesc);
+		}
+	}
+
+	/**
+	 * "-X GET /auth" Endpoint - get authentication token
+	 */
+	private function getAuth()
+	{
+		$iat = time();
+		$exp = $iat + 60 * 60;
+		$payload = array(
+			'iss' => 'https://nextcloud-dev.nist.gov/api/',
+			'aud' => 'https://nextcloud-dev.nist.gov/',
+			'iat' => $iat,
+			'exp' => $exp,
+		);
+		$jwt = JWT::encode($payload, $this->key, 'HS256');
+		return array(
+			'token' => $jwt,
+			'expires' => $exp
+		);
+	}
+
+	/**
 	 * Group resource endpoints
 	 */
-	private function group()
+	private function groups()
 	{
 		$strErrorDesc = '';
 		
@@ -73,7 +135,7 @@ class FunctionController extends BaseController
 		{
 			if (count($arrQueryUri) == 4) // "/genapi.php/groups" Endpoing - returns list of all groups
 			{
-				$this->listGroup();
+				$this->getGroups();
 			}
 			else
 			{
@@ -93,7 +155,7 @@ class FunctionController extends BaseController
 	/**
 	 * "-X GET /groups" Endpoint - Get list of all groups
 	 */
-	private function listGroup()
+	private function getGroups()
 	{
 		$command = self::$occ . ' group:list';
 		if (exec($command, $arrGroup))
@@ -104,7 +166,7 @@ class FunctionController extends BaseController
 		}
 	}
 	
-	private function extStorage()
+	private function extStorages()
 	{
 		$strErrorDesc = '';
 
@@ -115,7 +177,7 @@ class FunctionController extends BaseController
 		{
 			if (count($arrQueryUri) == 4)
 			{
-				$this->listExtStorage();
+				$this->getExtStorages();
 			}
 			else
 			{
@@ -133,7 +195,7 @@ class FunctionController extends BaseController
 	}
 
 
-	private function listExtStorage()
+	private function getExtStorages()
 	{
 		$command = self::$occ . ' files_external:list';
 		if (exec($command, $arrExtStorage))
