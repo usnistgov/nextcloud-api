@@ -114,11 +114,12 @@ class FunctionController extends BaseController
 			'iat' => $iat,
 			'exp' => $exp,
 		);
-		$jwt = JWT::encode($payload, $this->key, 'HS256');
-		return array(
+		
+		$responseData = json_encode(array(
 			'token' => $jwt,
 			'expires' => $exp
-		);
+		));
+		$this->sendOkayOutput($responseData);
 	}
 
 	/**
