@@ -115,6 +115,7 @@ class FunctionController extends BaseController
 			'exp' => $exp,
 		);
 		
+		$jwt = JWT::encode($payload, $this->key, 'HS256');
 		$responseData = json_encode(array(
 			'token' => $jwt,
 			'expires' => $exp
