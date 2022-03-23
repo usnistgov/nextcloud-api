@@ -60,6 +60,10 @@ class FunctionController extends BaseController
 			{
 				$this->test();
 			}
+			elseif ($resource == 'TESTAUTH') // "/genapi.php/testauth/" Endpoint - prints Method and URI if authenticated
+			{
+				$this->testAuth();
+			}
 			else //Unavailable/unsupported resource
 			{
 				$strErrorDesc = $resource . ' is not an available resource';
@@ -232,6 +236,45 @@ class FunctionController extends BaseController
 		{
 			$this->sendErrorOutput($strErrorDesc, $strErrorHeader);
 		}
+	}
+
+	/**
+	 *"/testauth/" Endpoint - prints method with query uri if authenticated
+	 */
+	private function testAuth()
+	{
+		$strErrorDesc = '';
+		$strErrorHeader = '';
+		$requestMethod = $this->getRequestMethod();
+		$arrQueryStringParams = $this->getQueryStringParams();
+		$arrQueryUri = $this->getUriSegments();
+
+		$headers = apache_request_headers();
+		$token = str_replace('Bearer ', '', $headers['Authorization']);
+
+		try 
+		{
+			$token = JWT::decode($token, $this->key, array('HS256'));
+
+			array_unshift($arrQueryUri, $requestMethod);
+			$responseData = json_encode($arrQueryUri);
+			
+			// send output
+			if (!$strErrorDesc)
+			{
+				$this->sendOkayOutput($responseData);
+			}
+			else
+			{
+				$this->sendErrorOutput($strErrorDesc, $strErrorHeader);
+			}
+		}
+		catch (\Exception $e)
+		{
+			$this->sendErrorOutput($strErrorDesc, $strErrorHeader);
+		}
+		
+		
 	}
 }
 ?>
