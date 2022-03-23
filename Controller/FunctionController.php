@@ -273,7 +273,7 @@ class FunctionController extends BaseController
 
 		try 
 		{
-			$token = JWT::decode($token, 'privatekey', array('HS256'));
+			$token = JWT::decode($token, new Key($this->key, 'HS256'));
 
 			array_unshift($arrQueryUri, $requestMethod);
 			$responseData = json_encode($arrQueryUri);
