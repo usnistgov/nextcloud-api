@@ -56,6 +56,10 @@ class FunctionController extends BaseController
 			{
 				$this->extStorages();
 			}
+			elseif ($resource == 'HEADERS') // "/genapi.php/headers/" Endpoint - prints headers from API call
+			{
+				$this->headers();
+			}
 			elseif ($resource == 'TEST') // "/genapi.php/test/" Endpoint - prints Method and URI
 			{
 				$this->test();
@@ -114,7 +118,7 @@ class FunctionController extends BaseController
 		$exp = $iat + 60 * 60;
 		$payload = array(
 			'iss' => 'https://nextcloud-dev.nist.gov/api/',
-			'aud' => 'https://nextcloud-dev.nist.gov/',
+			'aud' => 'https://nextcloud-dev.nist.gov/api/',
 			'iat' => $iat,
 			'exp' => $exp,
 		);
@@ -212,6 +216,21 @@ class FunctionController extends BaseController
 		}
 	}
 
+	/**
+	 * "/headers/" Endpoint - prints headers from API call
+	 */
+	private function headers()
+	{
+		$strErrorDesc = '';
+		$strErrorHeader = '';
+		$requestMethod = $this->getRequestMethod();
+		$arrQueryStringParams = $this->getQueryStringParams();
+		$arrQueryUri = $this->getUriSegments();
+
+		$headers = apache_request_headers();
+
+		$this->sendOkayOutput(json_encode($headers));
+	}
 
 	/**
 	 *"/test/" Endpoint - prints method with query uri
