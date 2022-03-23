@@ -100,6 +100,18 @@ class BaseController
 	}
 
 	/**
+	 * Send API output 401 error
+	 * 
+	 * @param string $strErrorDesc
+	 */
+	protected function sendError401Output($strErrorDesc)
+	{
+		$strErrorHeader = 'HTTP/1.1 401 Unauthorized';
+
+		$this->sendErrorOutput($strErrorDesc, $strErrorHeader);
+	}
+
+	/**
 	 * Send API output 404 error
 	 * 
 	 * @param string $strErrorDesc
