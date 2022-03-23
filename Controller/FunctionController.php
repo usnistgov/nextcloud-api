@@ -1,7 +1,7 @@
 <?php
 
 use \Firebase\JWT\JWT;
-use \Firebase\JWT\key;
+use \Firebase\JWT\Key;
 
 class FunctionController extends BaseController
 {
