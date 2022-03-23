@@ -290,7 +290,7 @@ class FunctionController extends BaseController
 		}
 		catch (\Exception $e)
 		{
-			$strErrorDesc = $requestMethod . ' ' . $this->getUri() . ' requires authorization';
+			$strErrorDesc = $requestMethod . ' ' . $this->getUri() . ' requires authorization: ' . $e->getMessage();
 
 			$this->sendError401Output($strErrorDesc);
 		}
