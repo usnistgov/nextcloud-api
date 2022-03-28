@@ -123,6 +123,8 @@ class FunctionController extends BaseController
 			'exp' => $exp,
 		);
 		
+		$this->sendOkayOutput($this->key);
+
 		$jwt = JWT::encode($payload, $this->key, 'HS256');
 		$responseData = json_encode(array(
 			'token' => $jwt,
