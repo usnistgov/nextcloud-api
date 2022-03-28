@@ -122,10 +122,8 @@ class FunctionController extends BaseController
 			'iat' => $iat,
 			'exp' => $exp,
 		);
-		
-		$this->sendOkayOutput(self::$key);
 
-		$jwt = JWT::encode($payload, $this->key, 'HS256');
+		$jwt = JWT::encode($payload, self::$key, 'HS256');
 		$responseData = json_encode(array(
 			'token' => $jwt,
 			'expires' => $exp
@@ -273,11 +271,9 @@ class FunctionController extends BaseController
 		$headers = apache_request_headers();
 		$token = str_replace('Bearer ', '', $headers['Authorization']);
 
-		$this->sendOkayOutput(json_encode(self::$key));
-
 		try 
 		{
-			$payload = JWT::decode($token, new Key($this->key, 'HS256'));
+			$payload = JWT::decode($token, new Key(self::$key, 'HS256'));
 
 			$this->sendOkayOutput(json_encode($payload));
 
