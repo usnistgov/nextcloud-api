@@ -123,7 +123,7 @@ class FunctionController extends BaseController
 			'exp' => $exp,
 		);
 		
-		$this->sendOkayOutput($this->key);
+		$this->sendOkayOutput(self::$key);
 
 		$jwt = JWT::encode($payload, $this->key, 'HS256');
 		$responseData = json_encode(array(
@@ -273,7 +273,7 @@ class FunctionController extends BaseController
 		$headers = apache_request_headers();
 		$token = str_replace('Bearer ', '', $headers['Authorization']);
 
-		$this->sendOkayOutput(json_encode($this->key));
+		$this->sendOkayOutput(json_encode(self::$key));
 
 		try 
 		{
