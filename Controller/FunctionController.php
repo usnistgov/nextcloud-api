@@ -271,6 +271,8 @@ class FunctionController extends BaseController
 		$headers = apache_request_headers();
 		$token = str_replace('Bearer ', '', $headers['Authorization']);
 
+		$this->sendOkayOutput(json_encode($this->key));
+
 		try 
 		{
 			$payload = JWT::decode($token, new Key($this->key, 'HS256'));
