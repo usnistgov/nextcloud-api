@@ -128,6 +128,7 @@ class FunctionController extends BaseController
 			'token' => $jwt,
 			'expires' => $exp
 		));
+		echo "Encode:\n " . print_r ($jwt, true) . "\n";
 		$this->sendOkayOutput($responseData);
 	}
 
@@ -274,7 +275,8 @@ class FunctionController extends BaseController
 		try 
 		{
 			$payload = JWT::decode($token, new Key(self::$key, 'HS256'));
-
+			$decoded_array = (array)$payload;
+			echo "Decode:\n" . print_r($decoded_array, true) . "\n";
 			$this->sendOkayOutput(json_encode($payload));
 
 			array_unshift($arrQueryUri, $requestMethod);
