@@ -274,7 +274,8 @@ class FunctionController extends BaseController
 
 		try 
 		{
-			$payload = JWT::decode($token, new Key(self::$key, 'HS256'));
+			//$payload = JWT::decode($token, new Key(self::$key, 'HS256'));
+			$payload = JWT::decode($token, new Key('testing', 'HS256'));
 			$decoded_array = (array)$payload;
 			echo "Decode:\n" . print_r($decoded_array, true) . "\n";
 			$this->sendOkayOutput(json_encode($payload));
