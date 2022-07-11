@@ -141,7 +141,7 @@ class FunctionController extends BaseController
 		
 		$requestMethod = $this->getRequestMethod();
 		$arrQueryUri = $this->getUriSegments();
-		
+
 		if ($requestMethod == 'GET') // GET method
 		{
 			if (count($arrQueryUri) == 4) // "/genapi.php/groups" Endpoint - returns list of all groups
@@ -191,7 +191,7 @@ class FunctionController extends BaseController
 		{
 			$responseData = json_encode($arrGroup);
 
-			$this->sendOkayOutput($responseData->$group);
+			$this->sendOkayOutput($responseData);
 		}
 	}
 	
