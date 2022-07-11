@@ -141,12 +141,16 @@ class FunctionController extends BaseController
 		
 		$requestMethod = $this->getRequestMethod();
 		$arrQueryUri = $this->getUriSegments();
-
+		
 		if ($requestMethod == 'GET') // GET method
 		{
-			if (count($arrQueryUri) == 4) // "/genapi.php/groups" Endpoing - returns list of all groups
+			if (count($arrQueryUri) == 4) // "/genapi.php/groups" Endpoint - returns list of all groups
 			{
 				$this->getGroups();
+			}
+			elseif (count($arrQueryUri) == 5) // "/genapi.php/groups/{group name}" Endpoint - returns list of members of specific group
+			{
+				$this->getGroupMembers($arrQueryUri[4]);
 			}
 			else
 			{
@@ -174,6 +178,20 @@ class FunctionController extends BaseController
 			$responseData = json_encode($arrGroup);
 
 			$this->sendOkayOutput($responseData);
+		}
+	}
+
+	/**
+	 * "-X GET /groups/{group name}" Endpoint - Get list of all members of given group
+	 */
+	private function getGroupMembers($group)
+	{
+		$command = self::$occ . ' group:list';
+		if (exec($command, $arrGroup))
+		{
+			$responseData = json_encode($arrGroup);
+
+			$this->sendOkayOutput($responseData->$group);
 		}
 	}
 	
