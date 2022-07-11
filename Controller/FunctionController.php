@@ -189,9 +189,15 @@ class FunctionController extends BaseController
 		$command = self::$occ . ' group:list';
 		if (exec($command, $arrGroup))
 		{
+			$testData = "";
+			foreach ($arrGroup as $val)
+			{
+				$testData .= $val;
+			}
+
 			$responseData = json_encode($arrGroup);
 
-			$this->sendOkayOutput($responseData[0]);
+			$this->sendOkayOutput($testData);
 		}
 	}
 	
