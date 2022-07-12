@@ -170,53 +170,53 @@ class FunctionController extends BaseController
 	/**
 	 * Returns JSON of occ group:list output
 	 */
-	private function parseGroups($arrGroup)
+	private function parseGroups(&$arrGroup)
 	{
 		// Building json file from occ output
 		$responseData = "{";
 			
-			foreach ($arrGroup as $var)
+		foreach ($arrGroup as $var)
+		{
+			// Group name found
+			if (str_ends_with($var, ":"))
 			{
-				// Group name found
-				if (str_ends_with($var, ":"))
-				{
-					$group = rtrim(substr($var, 4), ":"); // parse out group
+				$group = rtrim(substr($var, 4), ":"); // parse out group
 
-					if (strlen($responseData) != 1) // not first group
-					{
-						$responseData .= '],"' + $group + '":[';
-					}
-					else // first group
-					{
-						$responseData .= '"' + $group + '":[';
-					}
+				if (strlen($responseData) != 1) // not first group
+				{
+					$responseData .= '],"' + $group + '":[';
 				}
-				else // member found
+				else // first group
 				{
-					$member = substr($var, 6); // parse out member
-
-					if (str_ends_with($responseData, ']')) // first member in group
-					{
-						$responseData .= '"' + $member + '"';
-					}
-					else // not first member in group
-					{
-						$responseData .= ',"' + $member + '"';
-					}
+					$responseData .= '"' + $group + '":[';
 				}
 			}
-
-			// Add trailing square bracket if there is content in json
-			if ($strlen($responseData) != 1)
+			else // member found
 			{
-				$responseData .= "]}";
-			}
-			else
-			{
-				$responseData .= "}";
-			}
+				$member = substr($var, 6); // parse out member
 
-			return $responseData;
+				if (str_ends_with($responseData, ']')) // first member in group
+				{
+					$responseData .= '"' + $member + '"';
+				}
+				else // not first member in group
+				{
+					$responseData .= ',"' + $member + '"';
+				}
+			}
+		}
+
+		// Add trailing square bracket if there is content in json
+		if ($strlen($responseData) != 1)
+		{
+			$responseData .= "]}";
+		}
+		else
+		{
+			$responseData .= "}";
+		}
+
+		return $responseData;
 	}
 	
 	/**
