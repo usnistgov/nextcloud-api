@@ -229,8 +229,9 @@ class FunctionController extends BaseController
 		if (exec($command, $arrGroup))
 		{
 			//$responseData = json_encode($arrGroup);
+			$responseData = parseGroups($arrGroup);
 
-			$this->sendOkayOutput(parseGroups($arrGroup));
+			$this->sendOkayOutput($responseData);
 		}
 	}
 
