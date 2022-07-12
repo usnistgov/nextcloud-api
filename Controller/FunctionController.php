@@ -172,8 +172,6 @@ class FunctionController extends BaseController
 	 */
 	private function parseGroups($groups)
 	{
-		echo count($groups);
-		echo "\n\r";
 		// Building json file from occ output
 		$jsonArr = [];
 		$group = "";	
@@ -232,9 +230,16 @@ class FunctionController extends BaseController
 		$command = self::$occ . ' group:list';
 		if (exec($command, $arrGroup))
 		{
+			echo count($arrGroup);
+			echo "\r\n";
+			foreach ($arrGroup as $var)
+			{
+				echo $var;
+				echo "\r\n";
+			}
 			//$responseData = json_encode($arrGroup);
 			//$this->sendOkayOutput($responseData);
-			$responseData = json_encode($this->parseGroups($arrGroup));
+			//$responseData = json_encode($this->parseGroups($arrGroup));
 
 			//$this->sendOkayOutput($this->parseGroups($arrGroup));
 		}
