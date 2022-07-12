@@ -218,6 +218,8 @@ class FunctionController extends BaseController
 		$command = self::$occ . ' group:list';
 		if (exec($command, $arrGroup))
 		{
+			echo $group;
+			echo "\r\n";
 			$responseData = json_encode($this->parseGroups($arrGroup));
 
 			$this->sendOkayOutput($responseData[$group]);
