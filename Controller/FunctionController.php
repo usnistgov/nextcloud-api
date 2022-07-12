@@ -178,15 +178,11 @@ class FunctionController extends BaseController
 
 		foreach ($groups as $var)
 		{
-			$char = substr($var, -1);
-			echo $char;
-			echo "\r\n";
 			// Group name found
-			if (str_ends_with($var, $char))
-			//if($var == "  - 123:");
+			if ($this->endsWith($var, ':'))
 			{
-				//$group = rtrim(substr($var, 4), ":"); // parse out group
-				//$jsonArr[$group] = [];
+				$group = rtrim(substr($var, 4), ":"); // parse out group
+				$jsonArr[$group] = [];
 				///if (strlen($responseData) != 1) // not first group
 				//{
 				//	$responseData .= '],"' + $group + '":[';
@@ -196,10 +192,10 @@ class FunctionController extends BaseController
 				//	$responseData .= '"' + $group + '":[';
 				//}
 			}
-			//else // member found
-			//{
-				//$member = substr($var, 6); // parse out member
-				//array_push($jsonArr[$group], $member);
+			else // member found
+			{
+				$member = substr($var, 6); // parse out member
+				array_push($jsonArr[$group], $member);
 				//if (str_ends_with($responseData, ']')) // first member in group
 				//{
 				//	$responseData .= '"' + $member + '"';
@@ -208,9 +204,9 @@ class FunctionController extends BaseController
 				//{
 				//	$responseData .= ',"' + $member + '"';
 				//}
-			//}
+			}
 
-			//unset($var);
+			unset($var);
 		}
 
 		// Add trailing square bracket if there is content in json
@@ -239,7 +235,7 @@ class FunctionController extends BaseController
 			//$this->sendOkayOutput($responseData);
 			$responseData = json_encode($this->parseGroups($arrGroup));
 
-			//$this->sendOkayOutput($this->parseGroups($arrGroup));
+			$this->sendOkayOutput($responseData);
 		}
 	}
 

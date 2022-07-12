@@ -134,5 +134,33 @@ class BaseController
 
 		$this->sendErrorOutput($strErrorDesc, $strErrorHeader);
 	}
+
+	/**
+	 * Check if $haystack starts with $needle
+	 * 
+	 * @param string $haystack
+	 * @param string $needle
+	 */
+	protected function startsWith($haystack, $needle)
+	{
+		$length = strlen($needle);
+		return substr($haystack, 0, $length) === $needle;
+	}
+
+	/**
+	 * Check if $haystack ends with $needle
+	 * 
+	 * @param string $haystack
+	 * @param string $needle
+	 */
+	protected function endsWith($haystack, $needle)
+	{
+		$length = strlen($needle);
+		if (!length)
+		{
+			return true;
+		}
+		return substr($haystack, -$length) === $needle;
+	}
 }
 ?>
