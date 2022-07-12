@@ -181,10 +181,10 @@ class FunctionController extends BaseController
 			echo $var;
 			echo "\r\n";
 			// Group name found
-			if (str_ends_with($var, ":"))
-			{
-				$group = rtrim(substr($var, 4), ":"); // parse out group
-				$jsonArr[$group] = [];
+			//if (str_ends_with($var, ":"))
+			//{
+				//$group = rtrim(substr($var, 4), ":"); // parse out group
+				//$jsonArr[$group] = [];
 				///if (strlen($responseData) != 1) // not first group
 				//{
 				//	$responseData .= '],"' + $group + '":[';
@@ -193,11 +193,11 @@ class FunctionController extends BaseController
 				//{
 				//	$responseData .= '"' + $group + '":[';
 				//}
-			}
-			else // member found
-			{
-				$member = substr($var, 6); // parse out member
-				array_push($jsonArr[$group], $member);
+			//}
+			//else // member found
+			//{
+				//$member = substr($var, 6); // parse out member
+				//array_push($jsonArr[$group], $member);
 				//if (str_ends_with($responseData, ']')) // first member in group
 				//{
 				//	$responseData .= '"' + $member + '"';
@@ -206,9 +206,9 @@ class FunctionController extends BaseController
 				//{
 				//	$responseData .= ',"' + $member + '"';
 				//}
-			}
+			//}
 
-			unset($var);
+			//unset($var);
 		}
 
 		// Add trailing square bracket if there is content in json
