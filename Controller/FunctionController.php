@@ -229,7 +229,7 @@ class FunctionController extends BaseController
 		$command = self::$occ . ' group:list';
 		if (exec($command, $arrGroup))
 		{
-			$responseData = json_encode(this->parseGroups($arrGroup));
+			$responseData = json_encode($this->parseGroups($arrGroup));
 
 			$this->sendOkayOutput($responseData);
 		}
