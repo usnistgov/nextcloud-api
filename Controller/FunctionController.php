@@ -174,11 +174,19 @@ class FunctionController extends BaseController
 	{
 		// Building json file from occ output
 		$jsonArr = [];
-		$group = "";	
+		$group = "";
+
+		echo count($groups);
+		echo "\r\n";
 
 		foreach ($groups as $var)
 		{
 			echo $var;
+			echo "\r\n";
+		}
+
+		foreach ($groups as $var)
+		{
 			// Group name found
 			if (str_ends_with($var, ":"))
 			{
@@ -206,6 +214,8 @@ class FunctionController extends BaseController
 				//	$responseData .= ',"' + $member + '"';
 				//}
 			}
+
+			unset($var);
 		}
 
 		// Add trailing square bracket if there is content in json
@@ -239,7 +249,7 @@ class FunctionController extends BaseController
 			}
 			//$responseData = json_encode($arrGroup);
 			//$this->sendOkayOutput($responseData);
-			//$responseData = json_encode($this->parseGroups($arrGroup));
+			$responseData = json_encode($this->parseGroups($arrGroup));
 
 			//$this->sendOkayOutput($this->parseGroups($arrGroup));
 		}
