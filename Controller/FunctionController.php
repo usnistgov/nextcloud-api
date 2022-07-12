@@ -178,6 +178,7 @@ class FunctionController extends BaseController
 
 		foreach ($groups as $var)
 		{
+			echo $var;
 			// Group name found
 			if (str_ends_with($var, ":"))
 			{
@@ -230,9 +231,9 @@ class FunctionController extends BaseController
 		if (exec($command, $arrGroup))
 		{
 			echo "testing";
-			$responseData = json_encode($arrGroup);
-			$this->sendOkayOutput($responseData);
-			//$responseData = json_encode($this->parseGroups($arrGroup));
+			//$responseData = json_encode($arrGroup);
+			//$this->sendOkayOutput($responseData);
+			$responseData = json_encode($this->parseGroups($arrGroup));
 
 			//$this->sendOkayOutput($this->parseGroups($arrGroup));
 		}
