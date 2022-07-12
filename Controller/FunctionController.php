@@ -170,7 +170,7 @@ class FunctionController extends BaseController
 	/**
 	 * Returns JSON of occ group:list output
 	 */
-	private function parseGroups(&$arrGroup)
+	private function parseGroups($arrGroup)
 	{
 		// Building json file from occ output
 		$responseData = "{";
@@ -216,7 +216,8 @@ class FunctionController extends BaseController
 			$responseData .= "}";
 		}
 
-		return $responseData;
+		return "Hello World!";
+		//return $responseData;
 	}
 	
 	/**
