@@ -166,6 +166,58 @@ class FunctionController extends BaseController
 			$this->sendError405Output($strErrorDesc);
 		}
 	}
+
+	/**
+	 * Returns JSON of occ group:list output
+	 */
+	private function parseGroups($arrGroup)
+	{
+		// Building json file from occ output
+		$responseData = "{";
+			
+			foreach ($arrGroup as $var)
+			{
+				// Group name found
+				if (str_ends_with($var, ":"))
+				{
+					$group = rtrim(substr($var, 4), ":"); // parse out group
+
+					if (strlen($responseData) != 1) // not first group
+					{
+						$responseData .= '],"' + $group + '":[';
+					}
+					else // first group
+					{
+						$responseData .= '"' + $group + '":[';
+					}
+				}
+				else // member found
+				{
+					$member = substr($var, 6); // parse out member
+
+					if (str_ends_with($responseData, ']')) // first member in group
+					{
+						$responseData .= '"' + $member + '"';
+					}
+					else // not first member in group
+					{
+						$responseData .= ',"' + $member + '"';
+					}
+				}
+			}
+
+			// Add trailing square bracket if there is content in json
+			if ($strlen($responseData) != 1)
+			{
+				$responseData .= "]}";
+			}
+			else
+			{
+				$responseData .= "}";
+			}
+
+			return $responseData;
+	}
 	
 	/**
 	 * "-X GET /groups" Endpoint - Get list of all groups
@@ -175,9 +227,9 @@ class FunctionController extends BaseController
 		$command = self::$occ . ' group:list';
 		if (exec($command, $arrGroup))
 		{
-			$responseData = json_encode($arrGroup);
+			//$responseData = json_encode($arrGroup);
 
-			$this->sendOkayOutput($responseData);
+			$this->sendOkayOutput(parseGroups($arrGroup));
 		}
 	}
 
@@ -189,15 +241,9 @@ class FunctionController extends BaseController
 		$command = self::$occ . ' group:list';
 		if (exec($command, $arrGroup))
 		{
-			$testData = "";
-			foreach ($arrGroup as $val)
-			{
-				$testData .= $val;
-			}
-
 			$responseData = json_encode($arrGroup);
 
-			$this->sendOkayOutput($testData);
+			$this->sendOkayOutput($arrGroup);
 		}
 	}
 	
