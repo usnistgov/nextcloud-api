@@ -182,7 +182,7 @@ class FunctionController extends BaseController
 			echo $char;
 			echo "\r\n";
 			// Group name found
-			if (str_ends_with($var, ':'))
+			if (str_ends_with($var, $char))
 			//if($var == "  - 123:");
 			{
 				//$group = rtrim(substr($var, 4), ":"); // parse out group
