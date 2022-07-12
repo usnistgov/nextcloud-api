@@ -176,17 +176,10 @@ class FunctionController extends BaseController
 		$jsonArr = [];
 		$group = "";
 
-		echo count($groups);
-		echo "\r\n";
-
 		foreach ($groups as $var)
 		{
 			echo $var;
 			echo "\r\n";
-		}
-
-		foreach ($groups as $var)
-		{
 			// Group name found
 			if (str_ends_with($var, ":"))
 			{
@@ -240,13 +233,6 @@ class FunctionController extends BaseController
 		$command = self::$occ . ' group:list';
 		if (exec($command, $arrGroup))
 		{
-			echo count($arrGroup);
-			echo "\r\n";
-			foreach ($arrGroup as $var)
-			{
-				echo $var;
-				echo "\r\n";
-			}
 			//$responseData = json_encode($arrGroup);
 			//$this->sendOkayOutput($responseData);
 			$responseData = json_encode($this->parseGroups($arrGroup));
