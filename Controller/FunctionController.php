@@ -178,7 +178,7 @@ class FunctionController extends BaseController
 
 		foreach ($groups as $var)
 		{
-			echo $var;
+			echo "->" + $var + "<-";
 			echo "\r\n";
 			// Group name found
 			//if (str_ends_with($var, ':'))
