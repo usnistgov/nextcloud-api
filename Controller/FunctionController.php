@@ -173,51 +173,52 @@ class FunctionController extends BaseController
 	private function parseGroups($arrGroup)
 	{
 		// Building json file from occ output
-		$responseData = "{";
-			
+		$jsonArr = [];
+		$group = "";	
+
 		foreach ($arrGroup as $var)
 		{
 			// Group name found
 			if (str_ends_with($var, ":"))
 			{
 				$group = rtrim(substr($var, 4), ":"); // parse out group
-
-				if (strlen($responseData) != 1) // not first group
-				{
-					$responseData .= '],"' + $group + '":[';
-				}
-				else // first group
-				{
-					$responseData .= '"' + $group + '":[';
-				}
+				$jsonArr[$group] = [];
+				///if (strlen($responseData) != 1) // not first group
+				//{
+				//	$responseData .= '],"' + $group + '":[';
+				//}
+				//else // first group
+				//{
+				//	$responseData .= '"' + $group + '":[';
+				//}
 			}
 			else // member found
 			{
 				$member = substr($var, 6); // parse out member
-
-				if (str_ends_with($responseData, ']')) // first member in group
-				{
-					$responseData .= '"' + $member + '"';
-				}
-				else // not first member in group
-				{
-					$responseData .= ',"' + $member + '"';
-				}
+				array_push($jsonArr[$group], $member);
+				//if (str_ends_with($responseData, ']')) // first member in group
+				//{
+				//	$responseData .= '"' + $member + '"';
+				//}
+				//else // not first member in group
+				//{
+				//	$responseData .= ',"' + $member + '"';
+				//}
 			}
 		}
 
 		// Add trailing square bracket if there is content in json
-		if ($strlen($responseData) != 1)
-		{
-			$responseData .= "]}";
-		}
-		else
-		{
-			$responseData .= "}";
-		}
+		//if ($strlen($responseData) != 1)
+		//{
+		//	$responseData .= "]}";
+		//}
+		//else
+		//{
+		//	$responseData .= "}";
+		//}
 
-		return "Hello World!";
-		//return $responseData;
+		//return "Hello World!";
+		return $responseData;
 	}
 	
 	/**
