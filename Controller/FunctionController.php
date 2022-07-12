@@ -183,43 +183,16 @@ class FunctionController extends BaseController
 			{
 				$group = rtrim(substr($var, 4), ":"); // parse out group
 				$jsonArr[$group] = [];
-				///if (strlen($responseData) != 1) // not first group
-				//{
-				//	$responseData .= '],"' + $group + '":[';
-				//}
-				//else // first group
-				//{
-				//	$responseData .= '"' + $group + '":[';
-				//}
 			}
 			else // member found
 			{
 				$member = substr($var, 6); // parse out member
 				array_push($jsonArr[$group], $member);
-				//if (str_ends_with($responseData, ']')) // first member in group
-				//{
-				//	$responseData .= '"' + $member + '"';
-				//}
-				//else // not first member in group
-				//{
-				//	$responseData .= ',"' + $member + '"';
-				//}
 			}
 
 			unset($var);
 		}
 
-		// Add trailing square bracket if there is content in json
-		//if ($strlen($responseData) != 1)
-		//{
-		//	$responseData .= "]}";
-		//}
-		//else
-		//{
-		//	$responseData .= "}";
-		//}
-
-		//return "Hello World!";
 		return $jsonArr;
 	}
 	
@@ -231,8 +204,6 @@ class FunctionController extends BaseController
 		$command = self::$occ . ' group:list';
 		if (exec($command, $arrGroup))
 		{
-			//$responseData = json_encode($arrGroup);
-			//$this->sendOkayOutput($responseData);
 			$responseData = json_encode($this->parseGroups($arrGroup));
 
 			$this->sendOkayOutput($responseData);
@@ -247,9 +218,9 @@ class FunctionController extends BaseController
 		$command = self::$occ . ' group:list';
 		if (exec($command, $arrGroup))
 		{
-			$responseData = json_encode($arrGroup);
+			$responseData = json_encode($this->parseGroups($arrGroup));
 
-			$this->sendOkayOutput($responseData);
+			$this->sendOkayOutput($responseData[$group]);
 		}
 	}
 	
