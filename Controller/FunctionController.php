@@ -178,10 +178,12 @@ class FunctionController extends BaseController
 
 		foreach ($groups as $var)
 		{
-			echo '->' . $var . '<-';
+			$var = rtrim($var);
+			echo $var;
+			echo "\r\n";
 			// Group name found
-			//if (str_ends_with($var, ':'))
-			if(true);
+			if (str_ends_with($var, ':'))
+			//if(true);
 			{
 				//$group = rtrim(substr($var, 4), ":"); // parse out group
 				//$jsonArr[$group] = [];
