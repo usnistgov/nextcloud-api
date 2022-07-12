@@ -170,13 +170,13 @@ class FunctionController extends BaseController
 	/**
 	 * Returns JSON of occ group:list output
 	 */
-	private function parseGroups($arrGroup)
+	private function parseGroups($groups)
 	{
 		// Building json file from occ output
 		$jsonArr = [];
 		$group = "";	
 
-		foreach ($arrGroup as $var)
+		foreach ($groups as $var)
 		{
 			// Group name found
 			if (str_ends_with($var, ":"))
@@ -231,7 +231,9 @@ class FunctionController extends BaseController
 		{
 			//$responseData = json_encode(parseGroups($arrGroup));
 
-			$this->sendOkayOutput(parseGroups($arrGroup));
+			$responseData = parseGroups($arrGroup);
+
+			$this->sendOkayOutput($responseData);
 		}
 	}
 
