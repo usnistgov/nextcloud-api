@@ -218,7 +218,7 @@ class FunctionController extends BaseController
 		//}
 
 		//return "Hello World!";
-		return $responseData;
+		return $jsonArr;
 	}
 	
 	/**
