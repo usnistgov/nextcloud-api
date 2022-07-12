@@ -220,9 +220,9 @@ class FunctionController extends BaseController
 		{
 			echo $group;
 			echo "\r\n";
-			$responseData = json_encode($this->parseGroups($arrGroup));
+			$responseData = json_encode(($this->parseGroups($arrGroup))[$group]);
 
-			$this->sendOkayOutput(json_encode($responseData[$group]));
+			$this->sendOkayOutput($responseData);
 		}
 	}
 	
