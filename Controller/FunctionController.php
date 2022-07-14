@@ -159,6 +159,19 @@ class FunctionController extends BaseController
 				$this->sendError404Output($strErrorDesc);
 			}
 		}
+		elseif ($requestMethod == 'POST')
+		{
+			if (count($arrQueryUri) == 6) // "/genapi.php/groups/{group name}/{member}" Endpoint - adds member to group
+			{
+				$this->removeGroupMember($arrQueryUri[4], $arrQueryUri[5]);
+			}
+			else
+			{
+				$strErrorDesc = $requestMethod . ' ' . $this->getUri() . ' is not an available Method and Endpoint';
+				
+				$this->sendError404Output($strErrorDesc);
+			}
+		}
 		elseif ($requestMethod == 'DELETE')
 		{
 			if (count($arrQueryUri) == 6) // "/genapi.php/groups/{group name}/{member}" Endpoint - removes member from group
@@ -238,13 +251,25 @@ class FunctionController extends BaseController
 	}
 
 	/**
+	 * "-X POST /groups/{group name}/{member}" Endpoint - Add member to group
+	 */
+	private function addGroupMember($group, $member)
+	{
+		$command = self::$occ . ' group:adduser ' . $group . ' ' . $member;
+		if (exec($command, $arrGroup))
+		{
+			$responseData = json_encode($arrGroup);
+
+			$this->sendOkayOutput($responseData);
+		}
+	}
+
+	/**
 	 * "-X DELETE /groups/{group name}/{member}" Endpoint - Remove member from group
 	 */
 	private function removeGroupMember($group, $member)
 	{
 		$command = self::$occ . ' group:removeuser ' . $group . ' ' . $member;
-		echo $command;
-		echo "\r\n";
 		if (exec($command, $arrGroup))
 		{
 			$responseData = json_encode($arrGroup);
