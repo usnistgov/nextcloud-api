@@ -159,6 +159,19 @@ class FunctionController extends BaseController
 				$this->sendError404Output($strErrorDesc);
 			}
 		}
+		elseif ($requestMethod == 'DELETE')
+		{
+			if (count($arrQueryUri) == 6) // "/genapi.php/groups/{group name}/{member}" Endpoint - removes member from group
+			{
+				$this->removeGroupMember($arrQueryUri[4], $arrQueryUri[5]);
+			}
+			else
+			{
+				$strErrorDesc = $requestMethod . ' ' . $this->getUri() . ' is not an available Method and Endpoint';
+
+				$this->sendError404Output($strErrorDesc);
+			}
+		}
 		else // unsupported method
 		{
 			$strErrorDesc = $requestMethod . ' is not an available request Method';
@@ -221,6 +234,19 @@ class FunctionController extends BaseController
 			$responseData = json_encode(($this->parseGroups($arrGroup))[$group]);
 
 			$this->sendOkayOutput($responseData);
+		}
+	}
+
+	/**
+	 * "-X DELETE /groups/{group name}/{member}" Endpoint - Remove member from group
+	 */
+	private function removeGroupMember($group, $member)
+	{
+		$command = self::$occ . ' group:removeuser ' . $group . ' ' . $member;
+		echo $command;
+		if (exec($command, $arrGroup))
+		{
+
 		}
 	}
 	
