@@ -243,6 +243,8 @@ class FunctionController extends BaseController
 	private function removeGroupMember($group, $member)
 	{
 		$command = self::$occ . ' group:removeuser ' . $group . ' ' . $member;
+		echo $command;
+		echo "\r\n";
 		if (exec($command, $arrGroup))
 		{
 			$responseData = json_encode($arrGroup);
