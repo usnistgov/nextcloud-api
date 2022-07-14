@@ -163,7 +163,7 @@ class FunctionController extends BaseController
 		{
 			if (count($arrQueryUri) == 6) // "/genapi.php/groups/{group name}/{member}" Endpoint - adds member to group
 			{
-				$this->removeGroupMember($arrQueryUri[4], $arrQueryUri[5]);
+				$this->addGroupMember($arrQueryUri[4], $arrQueryUri[5]);
 			}
 			else
 			{
