@@ -161,7 +161,11 @@ class FunctionController extends BaseController
 		}
 		elseif ($requestMethod == 'POST')
 		{
-			if (count($arrQueryUri) == 6) // "/genapi.php/groups/{group name}/{member}" Endpoint - adds member to group
+			if (cound($arrQueryUri) == 5) // "/genapi.php/groups/{group name}" Endpoing - creates group
+			{
+				$this->addGroup($arrQueryUri[4]);
+			}
+			elseif (count($arrQueryUri) == 6) // "/genapi.php/groups/{group name}/{member}" Endpoint - adds member to group
 			{
 				$this->addGroupMember($arrQueryUri[4], $arrQueryUri[5]);
 			}
@@ -174,7 +178,11 @@ class FunctionController extends BaseController
 		}
 		elseif ($requestMethod == 'DELETE')
 		{
-			if (count($arrQueryUri) == 6) // "/genapi.php/groups/{group name}/{member}" Endpoint - removes member from group
+			if (count($arrQueryUri) == 5) // "/genapi.php/groups/{group name}" Endpoint - deletes group
+			{
+				$this->deleteGroup($arrQueryUri[4]);
+			}
+			elseif (count($arrQueryUri) == 6) // "/genapi.php/groups/{group name}/{member}" Endpoint - removes member from group
 			{
 				$this->removeGroupMember($arrQueryUri[4], $arrQueryUri[5]);
 			}
@@ -251,11 +259,39 @@ class FunctionController extends BaseController
 	}
 
 	/**
+	 * "-X POST /groups/{group name}" Endpoint - Create group
+	 */
+	private function addGroup($group)
+	{
+		$command = self::$occ . ' group:add ' . $group;
+		if (exec($command, $arrGroup))
+		{
+			$responseData = json_encode($arrGroup);
+
+			$this->sendOkayOutput($responseData);
+		}
+	}
+
+	/**
 	 * "-X POST /groups/{group name}/{member}" Endpoint - Add member to group
 	 */
 	private function addGroupMember($group, $member)
 	{
 		$command = self::$occ . ' group:adduser ' . $group . ' ' . $member;
+		if (exec($command, $arrGroup))
+		{
+			$responseData = json_encode($arrGroup);
+
+			$this->sendOkayOutput($responseData);
+		}
+	}
+
+	/**
+	 * -X DELETE /groups/{group name}" Endpoint - Delete group
+	 */
+	private function deleteGroup($group)
+	{
+		$command = self::$occ . ' group:delete ' . $group;
 		if (exec($command, $arrGroup))
 		{
 			$responseData = json_encode($arrGroup);
