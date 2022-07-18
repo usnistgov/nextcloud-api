@@ -337,9 +337,13 @@ class FunctionController extends BaseController
 
 		if ($requestMethod == 'GET')
 		{
-			if (count($arrQueryUri) == 4)
+			if (count($arrQueryUri) == 4) // /genapi.php/extstorages endpoint - list all external storages
 			{
 				$this->getExtStorages();
+			}
+			elseif (count($arrQueryUri) == 5) // /genapi.php/extstorages/{storage id} endpoint - get specific external storage
+			{
+				$this->getExtStorage($arrQueryUri[4]);
 			}
 			else
 			{
@@ -447,6 +451,20 @@ class FunctionController extends BaseController
 		if (exec($command, $arrExtStorage))
 		{
 			$responseData = json_encode($this->parseExtStorages($arrExtStorage));
+
+			$this->sendOkayOutput($responseData);
+		}
+	}
+
+	/**
+	 * "-X GET /extstorage/{storage id}" Endpoint - get specified external storage
+	 */
+	private function getExtStorage($storageId)
+	{
+		$command = self::$occ . ' files_external:list':
+		if (exec($command, $arrExtStorage))
+		{
+			$responseData = json_encode(($this->parseExtStorages($arrExtStorage))[$storageId]);
 
 			$this->sendOkayOutput($responseData);
 		}
