@@ -52,7 +52,7 @@ class FunctionController extends BaseController
 			{
 				$this->groups();
 			}
-			elseif ($resource == 'EXTSTORAGES') // "/genapi.php/extstorage/" group of endpoints
+			elseif ($resource == 'EXTSTORAGES') // "/genapi.php/extstorages/" group of endpoints
 			{
 				$this->extStorages();
 			}
@@ -323,6 +323,11 @@ class FunctionController extends BaseController
 		}
 	}
 	
+	/**
+	 * External Storages resource endpoints
+	 * GET
+	 * - extstorages
+	 */
 	private function extStorages()
 	{
 		$strErrorDesc = '';
@@ -352,13 +357,22 @@ class FunctionController extends BaseController
 	}
 
 	/**
-	 * "-X GET /extstorage/" Endpoint - list all external storages
+	 * returns array of array of occ files_external:list output
+	 */
+	private function parseExtStorages($extStorages)
+	{
+
+	}
+
+	/**
+	 * "-X GET /extstorages/" Endpoint - list all external storages
 	 */
 	private function getExtStorages()
 	{
 		$command = self::$occ . ' files_external:list';
 		if (exec($command, $arrExtStorage))
 		{
+			unset($arrExtStorage[0]);
 			$responseData = json_encode($arrExtStorage);
 
 			$this->sendOkayOutput($responseData);
