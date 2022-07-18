@@ -366,6 +366,9 @@ class FunctionController extends BaseController
 		unset($extStorage[2]);
 		unset($extStorage[0]);
 
+		echo $extStorage[1];
+		echo "\r\n";
+
 		// get header rows
 		$headers = explode("|", $extStorage[1]);
 
@@ -388,9 +391,9 @@ class FunctionController extends BaseController
 		if (exec($command, $arrExtStorage))
 		{
 			$this->parseExtStorages($arrExtStorage);
-			$responseData = json_encode($arrExtStorage);
+			//$responseData = json_encode($arrExtStorage);
 
-			$this->sendOkayOutput($responseData);
+			//$this->sendOkayOutput($responseData);
 		}
 	}
 
