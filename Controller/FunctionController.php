@@ -362,18 +362,18 @@ class FunctionController extends BaseController
 	private function parseExtStorages($extStorages)
 	{
 		// remove blank array items
-		unset($extStorage[count($arrExtStorage) - 1]);
-		unset($extStorage[2]);
-		unset($extStorage[0]);
+		unset($extStorages[count($extStorages) - 1]);
+		unset($extStorages[2]);
+		unset($extStorages[0]);
 
-		echo $extStorage[1];
+		echo $extStorages[1];
 		echo "\r\n";
 
 		// get header rows
-		$headers = explode("|", $extStorage[1]);
+		$headers = explode("|", $extStorages[1]);
 
 		// clean up $headers
-		for ($i = 0; $i < count($extStorage); $i++)
+		for ($i = 0; $i < count($extStorages); $i++)
 		{
 			echo "->" . $headers[$i] . "<-";
 			echo "\r\n";
