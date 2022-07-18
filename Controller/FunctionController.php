@@ -358,6 +358,15 @@ class FunctionController extends BaseController
 
 	/**
 	 * returns array of array of occ files_external:list output
+	 * Current fields are:
+	 * - Mount ID			- 0
+	 * - Mount Point		- 1
+	 * - Storage			- 2
+	 * - Authentication		- 3
+	 * - Configuration		- 4
+	 * - Options			- 5
+	 * - Applicable Users	- 6
+	 * - Applicable Groups	- 7
 	 */
 	private function parseExtStorages($extStorages)
 	{
@@ -399,7 +408,14 @@ class FunctionController extends BaseController
 
 			for ($i = 0; $i < count($headers); $i++)
 			{
-				$parsedExtStorages[$row[0]][$headers[$i]] = $row[$i];
+				if ($i == 6 || 7) // Either Applicable Users or Applicable Groups, set output as array
+				{
+					$parsedExtStorages[$row[0]][$headers[$i]] = explode(", ", $row[$i]);
+				}
+				else
+				{
+					$parsedExtStorages[$row[0]][$headers[$i]] = $row[$i];
+				}
 			}
 		}
 
