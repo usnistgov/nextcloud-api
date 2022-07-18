@@ -366,9 +366,6 @@ class FunctionController extends BaseController
 		unset($extStorages[2]);
 		unset($extStorages[0]);
 
-		echo $extStorages[1];
-		echo "\r\n";
-
 		// get header rows
 		$headers = explode("|", $extStorages[1]);
 
@@ -379,6 +376,7 @@ class FunctionController extends BaseController
 			echo "\r\n";
 			$headers[$i] = trim($headers[$i]);
 			echo "->" . $headers[$i] . "<-";
+			echo "\r\n";
 		}
 	}
 
