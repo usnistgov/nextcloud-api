@@ -368,9 +368,10 @@ class FunctionController extends BaseController
 
 		// get header rows
 		$headers = explode("|", $extStorages[1]);
+		array_shift($headers);
 
 		// clean up $headers
-		for ($i = 0; $i < count($extStorages); $i++)
+		for ($i = 0; $i < count($headers); $i++)
 		{
 			echo "->" . $headers[$i] . "<-";
 			echo "\r\n";
