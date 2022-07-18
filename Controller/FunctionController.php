@@ -372,6 +372,7 @@ class FunctionController extends BaseController
 		$command = self::$occ . ' files_external:list';
 		if (exec($command, $arrExtStorage))
 		{
+			unset($arrExtStorage[count($arrExtStorage) - 1])
 			unset($arrExtStorage[0]);
 			$responseData = json_encode($arrExtStorage);
 
