@@ -461,7 +461,7 @@ class FunctionController extends BaseController
 	 */
 	private function getExtStorage($storageId)
 	{
-		$command = self::$occ . ' files_external:list':
+		$command = self::$occ . ' files_external:list';
 		if (exec($command, $arrExtStorage))
 		{
 			$responseData = json_encode(($this->parseExtStorages($arrExtStorage))[$storageId]);
