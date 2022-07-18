@@ -408,7 +408,7 @@ class FunctionController extends BaseController
 
 			for ($i = 0; $i < count($headers); $i++)
 			{
-				if ($i == 6 || 7) // Either Applicable Users or Applicable Groups, set output as array
+				if ($i == 6 || $i == 7) // Either Applicable Users or Applicable Groups, set output as array
 				{
 					$parsedExtStorages[$row[0]][$headers[$i]] = explode(", ", $row[$i]);
 				}
