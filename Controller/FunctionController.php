@@ -412,6 +412,22 @@ class FunctionController extends BaseController
 				{
 					$parsedExtStorages[$row[0]][$headers[$i]] = explode(", ", $row[$i]);
 				}
+				elseif ($i == 4) // Configuration set as keyed array
+				{
+					if (strlen($row[$i]) == 0)
+					{
+						$parsedExtStorages[$row[0]][$headers[$i]] = [];
+					}
+					else
+					{
+						$rowArr = explode(", ", $row[$i]);
+						foreach ($rowArr as $rowEle)
+						{
+							$keyValue = explode(", ", $rowEle, 2);
+							$parsedExtStorages[$row[0]][$headers[$i]][$keyValue[0]] = $keyValue[1];
+						}
+					}
+				}
 				else
 				{
 					$parsedExtStorages[$row[0]][$headers[$i]] = $row[$i];
