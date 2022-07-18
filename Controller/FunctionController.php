@@ -134,6 +134,15 @@ class FunctionController extends BaseController
 
 	/**
 	 * Group resource endpoints
+	 * GET
+	 * - groups
+	 * - groups/{group name}
+	 * POST
+	 * - groups/{group name}
+	 * - groups/{group name}/{member}
+	 * DELETE
+	 * - groups/{group name}
+	 * - groups/{group name}/{member}
 	 */
 	private function groups()
 	{
@@ -342,7 +351,9 @@ class FunctionController extends BaseController
 		}
 	}
 
-
+	/**
+	 * "-X GET /extstorage/" Endpoint - list all external storages
+	 */
 	private function getExtStorages()
 	{
 		$command = self::$occ . ' files_external:list';
