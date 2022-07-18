@@ -373,6 +373,7 @@ class FunctionController extends BaseController
 		if (exec($command, $arrExtStorage))
 		{
 			unset($arrExtStorage[count($arrExtStorage) - 1]);
+			unset($arrExtStorage[2]);
 			unset($arrExtStorage[0]);
 			$responseData = json_encode($arrExtStorage);
 
