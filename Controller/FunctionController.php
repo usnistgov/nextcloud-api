@@ -361,6 +361,8 @@ class FunctionController extends BaseController
 	 */
 	private function parseExtStorages($extStorages)
 	{
+		$parsedExtStorages = [];
+
 		// remove blank array items
 		unset($extStorages[count($extStorages) - 1]);
 		unset($extStorages[2]);
@@ -374,12 +376,34 @@ class FunctionController extends BaseController
 		// clean up $headers
 		for ($i = 0; $i < count($headers); $i++)
 		{
-			echo "->" . $headers[$i] . "<-";
-			echo "\r\n";
 			$headers[$i] = trim($headers[$i]);
-			echo "->" . $headers[$i] . "<-";
-			echo "\r\n";
 		}
+
+		// remove header row
+		unset($extStorages[1]);
+
+		foreach ($extStorages as $extStorage)
+		{
+			// clean up each entry
+			$row = explode("|", $extStorage);
+			array_shift($row);
+			array_pop($row);
+
+			for ($i = 0; $i < count($row); $i++)
+			{
+				$row[$i] = trim($row[$i]);
+			}
+
+			// set storage id as entry key
+			$parsedExtStorages[$row[0]] = [];
+
+			for ($i = 0; $i < count($headers); $i++)
+			{
+				$parsedExtStorages[$row[0]][$headers[$i]] = $row[$i];
+			}
+		}
+
+		return $parsedExtStorages;
 	}
 
 	/**
@@ -390,10 +414,9 @@ class FunctionController extends BaseController
 		$command = self::$occ . ' files_external:list';
 		if (exec($command, $arrExtStorage))
 		{
-			$this->parseExtStorages($arrExtStorage);
-			//$responseData = json_encode($arrExtStorage);
+			$responseData = json_encode($this->parseExtStorages($arrExtStorage));
 
-			//$this->sendOkayOutput($responseData);
+			$this->sendOkayOutput($responseData);
 		}
 	}
 
