@@ -423,7 +423,7 @@ class FunctionController extends BaseController
 						$rowArr = explode(", ", $row[$i]);
 						foreach ($rowArr as $rowEle)
 						{
-							$keyValue = explode(", ", $rowEle, 2);
+							$keyValue = explode(": ", $rowEle, 2);
 							$parsedExtStorages[$row[0]][$headers[$i]][$keyValue[0]] = $keyValue[1];
 						}
 					}
