@@ -327,6 +327,12 @@ class FunctionController extends BaseController
 	 * External Storages resource endpoints
 	 * GET
 	 * - extstorages
+	 * POST
+	 * - extstorages/users/{user}
+	 * - extstorages/groups/{group}
+	 * DELETE
+	 * - extstorages/users/{user}
+	 * - extstorages/groups/{group}
 	 */
 	private function extStorages()
 	{
@@ -368,6 +374,10 @@ class FunctionController extends BaseController
 		}
 		elseif ($requestMethod == 'DELETE')
 		{
+			if (count($arrQueryUri) == 5) // /genapi.php/extstorages/{storage id} endpoint - delete external storage
+			{
+				$this->deleteExtStorage($arrQueryUri[4]);
+			}
 			if (count($arrQueryUri) == 7)
 			{
 				if ($arrQueryUri[5] == 'users') // /genapi.php/extstorages/{storage id}/users/{user} endpoint - remove user from external storage applicable users
@@ -493,6 +503,20 @@ class FunctionController extends BaseController
 		if (exec($command, $arrExtStorage))
 		{
 			$responseData = json_encode(($this->parseExtStorages($arrExtStorage))[$storageId]);
+
+			$this->sendOkayOutput($responseData);
+		}
+	}
+
+	/**
+	 * "-X DELETE /extstorages/{storage id}" Endpoint - deletes specified external storage
+	 */
+	private function deleteExtStorage($storageId)
+	{
+		$command = self::$occ . ' files_external:delete ' . $storageId;
+		if (exec($command, $arrExtStorage))
+		{
+			$responseData = json_encode($arrExtStorage);
 
 			$this->sendOkayOutput($responseData);
 		}
