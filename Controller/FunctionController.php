@@ -14,7 +14,7 @@ class FunctionController extends BaseController
 	 * - Files (UNAVAILABLE)
 	 * - Users (UNAVAILABLE)
 	 * - Groups
-	 * - ExtStorage (UNAVAILABLE) External Storage
+	 * - ExtStorage
 	 * - Test (Returns Method and Query uri)
 	 * - Auth
 	 */
@@ -331,6 +331,8 @@ class FunctionController extends BaseController
 	 * - extstorages/local/{name}
 	 * - extstorages/users/{user}
 	 * - extstorages/groups/{group}
+	 * PUT
+	 * - extstorages/{storage id}/config/{key}/{value}
 	 * DELETE
 	 * - extstorages/{storage id}
 	 * - extstorages/users/{user}
