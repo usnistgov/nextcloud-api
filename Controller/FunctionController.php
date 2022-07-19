@@ -383,12 +383,15 @@ class FunctionController extends BaseController
 		}
 		elseif ($requestMethod == 'PUT')
 		{
-			if (count($arrQueryUri) == 8)
+			if ($arrQueryUri[5] == 'config') // /genapi.php/extstorages/{storage id}/config/{key}/{value} endpoint - sets external storages config key/value
 			{
-				if ($arrQueryUri[5] == 'config') // /genapi.php/extstorages/{storage id}/config/{key}/{value} endpoint - sets external storages config key/value
+				$value = $arrQueryUri[7];
+				for ($i = 8; $i < count($arrQueryUri); $i++)
 				{
-					$this->setConfigExtStorage($arrQueryUri[4], $arrQueryUri[6], $arrQueryUri[7]);
+					$value .= '/' . $arrQueryUri[$i];
 				}
+
+				$this->setConfigExtStorage($arrQueryUri[4], $arrQueryUri[6], $value);
 			}
 		}
 		elseif ($requestMethod == 'DELETE')
