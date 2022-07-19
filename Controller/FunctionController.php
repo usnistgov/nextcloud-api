@@ -360,7 +360,7 @@ class FunctionController extends BaseController
 				{
 					$this->addUserExtStorage($arrQueryUri[4], $arrQueryUri[6]);
 				}
-				elseif ($arrqueryu[5] == 'groups') // /genapi.php/extstorages/{storage id}/groups/{group} endpoint - add group to external storage applicable groups
+				elseif ($arrQueryUri[5] == 'groups') // /genapi.php/extstorages/{storage id}/groups/{group} endpoint - add group to external storage applicable groups
 				{
 					$this->addGroupExtStorage($arrQueryUri[4], $arrQueryUri[6]);
 				}
@@ -374,7 +374,7 @@ class FunctionController extends BaseController
 				{
 					$this->removeUserExtStorage($arrQueryUri[4], $arrQueryUri[6]);
 				}
-				elseif ($arrqueryu[5] == 'groups') // /genapi.php/extstorages/{storage id}/groups/{group} endpoint - remove group from external storage applicable groups
+				elseif ($arrQueryUri[5] == 'groups') // /genapi.php/extstorages/{storage id}/groups/{group} endpoint - remove group from external storage applicable groups
 				{
 					$this->removeGroupExtStorage($arrQueryUri[4], $arrQueryUri[6]);
 				}
@@ -532,7 +532,6 @@ class FunctionController extends BaseController
 	private function addGroupExtStorage($storageId, $group)
 	{
 		$command = self::$occ . ' files_external:applicable --add-group ' . $group . ' ' . $storageId;
-		echo $command;
 		if (exec($command, $arrExtStorage))
 		{
 			$responseData = json_encode($arrExtStorage);
