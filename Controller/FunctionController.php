@@ -328,9 +328,11 @@ class FunctionController extends BaseController
 	 * GET
 	 * - extstorages
 	 * POST
+	 * - extstorages/local/{name}
 	 * - extstorages/users/{user}
 	 * - extstorages/groups/{group}
 	 * DELETE
+	 * - extstorages/{storage id}
 	 * - extstorages/users/{user}
 	 * - extstorages/groups/{group}
 	 */
@@ -369,6 +371,13 @@ class FunctionController extends BaseController
 				elseif ($arrQueryUri[5] == 'groups') // /genapi.php/extstorages/{storage id}/groups/{group} endpoint - add group to external storage applicable groups
 				{
 					$this->addGroupExtStorage($arrQueryUri[4], $arrQueryUri[6]);
+				}
+			}
+			elseif (count($arrQueryUri) == 6)
+			{
+				if ($arrQueryUri[4] == 'local') // /genapi.php/extstorages/local/{name} endpoint - create external storage of type local
+				{
+					$this->createLocalExtStorage($arrQueryUri[5]);
 				}
 			}
 		}
@@ -503,6 +512,20 @@ class FunctionController extends BaseController
 		if (exec($command, $arrExtStorage))
 		{
 			$responseData = json_encode(($this->parseExtStorages($arrExtStorage))[$storageId]);
+
+			$this->sendOkayOutput($responseData);
+		}
+	}
+
+	/**
+	 * "-X POST /extstorages/local/{name}" Endpoint - creates external storage of type local
+	 */
+	private function createLocalExtStorage($name)
+	{
+		$command = self::$occ . ' files_external:create ' . $name . ' local null::null';
+		if (exec($command, $arrExtStorage))
+		{
+			$responseData = json_encode($arrExtStorage);
 
 			$this->sendOkayOutput($responseData);
 		}
