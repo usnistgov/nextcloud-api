@@ -375,9 +375,19 @@ class FunctionController extends BaseController
 			}
 			elseif (count($arrQueryUri) == 6)
 			{
-				if ($arrQueryUri[4] == 'local') // /genapi.php/extstorages/local/{name} endpoint - create external storage of type local
+				if ($arrQueryUri[4] == 'local') // /genapi.php/extstorages/local/{name} endpoint - create external storage of type local (not configured)
 				{
 					$this->createLocalExtStorage($arrQueryUri[5]);
+				}
+			}
+		}
+		elseif ($requestMethod == 'PUT')
+		{
+			if (count($arrQueryUri) == 8)
+			{
+				if ($arrQueryUri[5] == 'config') // /genapi.php/extstorages/{storage id}/config/{key}/{value} endpoint - sets external storages config key/value
+				{
+					$this->setConfigExtStorage($arrQueryUri[4], $arrQueryUri[6], $arrQueryUri[7]);
 				}
 			}
 		}
@@ -518,11 +528,25 @@ class FunctionController extends BaseController
 	}
 
 	/**
-	 * "-X POST /extstorages/local/{name}" Endpoint - creates external storage of type local
+	 * "-X POST /extstorages/local/{name}" Endpoint - creates external storage of type local (not configured)
 	 */
 	private function createLocalExtStorage($name)
 	{
 		$command = self::$occ . ' files_external:create ' . $name . ' local null::null';
+		if (exec($command, $arrExtStorage))
+		{
+			$responseData = json_encode($arrExtStorage);
+
+			$this->sendOkayOutput($responseData);
+		}
+	}
+
+	/**
+	 * "-X PUT /extstorages/{storage id}/config/{key}/{value}" Endpoint - sets key/value pair in external storage configuration
+	 */
+	private function setConfigExtStorage($storageId, $key, $value)
+	{
+		$command = self::$occ . ' files_external:config ' . $storageId . ' ' . $key . ' ' . $value;
 		if (exec($command, $arrExtStorage))
 		{
 			$responseData = json_encode($arrExtStorage);
