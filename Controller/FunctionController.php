@@ -513,7 +513,7 @@ class FunctionController extends BaseController
 	 */
 	private function deleteExtStorage($storageId)
 	{
-		$command = self::$occ . ' files_external:delete ' . $storageId;
+		$command = self::$occ . ' files_external:delete -y ' . $storageId;
 		if (exec($command, $arrExtStorage))
 		{
 			$responseData = json_encode($arrExtStorage);
