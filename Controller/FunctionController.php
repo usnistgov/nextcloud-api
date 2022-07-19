@@ -532,6 +532,7 @@ class FunctionController extends BaseController
 	private function addGroupExtStorage($storageId, $group)
 	{
 		$command = self::$occ . ' files_external:applicable --add-group ' . $group . ' ' . $storageId;
+		echo $command;
 		if (exec($command, $arrExtStorage))
 		{
 			$responseData = json_encode($arrExtStorage);
