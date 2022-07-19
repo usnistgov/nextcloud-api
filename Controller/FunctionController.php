@@ -352,6 +352,34 @@ class FunctionController extends BaseController
 				$this->sendError404Output($strErrorDesc);
 			}
 		}
+		elseif ($requestMethod == 'POST')
+		{
+			if (count($arrQueryUri) == 7)
+			{
+				if ($arrQueryUri[5] == 'users') // /genapi.php/extstorages/{storage id}/users/{user} endpoint - add user to external storage applicable users
+				{
+					$this->addUserExtStorage($arrQueryUri[4], $arrQueryUri[6]);
+				}
+				elseif ($arrqueryu[5] == 'groups') // /genapi.php/extstorages/{storage id}/groups/{group} endpoint - add group to external storage applicable groups
+				{
+					$this->addGroupExtStorage($arrQueryUri[4], $arrQueryUri[6]);
+				}
+			}
+		}
+		elseif ($requestMethod == 'DELETE')
+		{
+			if (count($arrQueryUri) == 7)
+			{
+				if ($arrQueryUri[5] == 'users') // /genapi.php/extstorages/{storage id}/users/{user} endpoint - remove user from external storage applicable users
+				{
+					$this->removeUserExtStorage($arrQueryUri[4], $arrQueryUri[6]);
+				}
+				elseif ($arrqueryu[5] == 'groups') // /genapi.php/extstorages/{storage id}/groups/{group} endpoint - remove group from external storage applicable groups
+				{
+					$this->removeGroupExtStorage($arrQueryUri[4], $arrQueryUri[6]);
+				}
+			}
+		}
 		else
 		{
 			$strErrorDesc = $requestMethod . ' is not an available request Method';
@@ -457,7 +485,7 @@ class FunctionController extends BaseController
 	}
 
 	/**
-	 * "-X GET /extstorage/{storage id}" Endpoint - get specified external storage
+	 * "-X GET /extstorages/{storage id}" Endpoint - get specified external storage
 	 */
 	private function getExtStorage($storageId)
 	{
@@ -465,6 +493,62 @@ class FunctionController extends BaseController
 		if (exec($command, $arrExtStorage))
 		{
 			$responseData = json_encode(($this->parseExtStorages($arrExtStorage))[$storageId]);
+
+			$this->sendOkayOutput($responseData);
+		}
+	}
+
+	/**
+	 * "-X POST /extstorages/{storage id}/users/{user}" Endpoint - add user to external storage applicable users
+	 */
+	private function addUserExtStorage($storageId, $user)
+	{
+		$command = self::$occ . ' files_external:applicable --add-user ' . $user . ' ' . $storageId;
+		if (exec($command, $arrExtStorage))
+		{
+			$responseData = json_encode($arrExtStorage);
+
+			$this->sendOkayOutput($responseData);
+		}
+	}
+
+	/**
+	 * "-X DELETE /extstorages/{storage id}/users/{user}" Endpoint - remove user from external storage applicable users
+	 */
+	private function removeUserExtStorage($storageId, $user)
+	{
+		$command = self::$occ . ' files_external:applicable --remove-user ' . $user . ' ' . $storageId;
+		if (exec($command, $arrExtStorage))
+		{
+			$responseData = json_encode($arrExtStorage);
+
+			$this->sendOkayOutput($responseData);
+		}
+	}
+	
+	/**
+	 * "-X POST /extstorages/{storage id}/groups/{group}" Endpoint - add group to external storage applicable groups
+	 */
+	private function addGroupExtStorage($storageId, $group)
+	{
+		$command = self::$occ . ' files_external:applicable --add-group ' . $group . ' ' . $storageId;
+		if (exec($command, $arrExtStorage))
+		{
+			$responseData = json_encode($arrExtStorage);
+
+			$this->sendOkayOutput($responseData);
+		}
+	}
+
+	/**
+	 * "-X DELETE /extstorages/{storage id}/groups/{group}" Endpoint - remove group from external storage applicable groups
+	 */
+	private function removeGroupExtStorage($storageId, $group)
+	{
+		$command = self::$occ . ' files_external:applicable --remove-group ' . $group . ' ' . $storageId;
+		if (exec($command, $arrExtStorage))
+		{
+			$responseData = json_encode($arrExtStorage);
 
 			$this->sendOkayOutput($responseData);
 		}
