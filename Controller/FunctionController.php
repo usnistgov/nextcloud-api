@@ -329,10 +329,12 @@ class FunctionController extends BaseController
 	 * - extstorages
 	 * POST
 	 * - extstorages/local/{name}
+	 * - extstorages/s3/{name}
 	 * - extstorages/users/{user}
 	 * - extstorages/groups/{group}
 	 * PUT
 	 * - extstorages/{storage id}/config/{key}/{value}
+	 * - extstorages/{storage id}/option/{key}/{value}
 	 * DELETE
 	 * - extstorages/{storage id}
 	 * - extstorages/users/{user}
@@ -398,6 +400,16 @@ class FunctionController extends BaseController
 				}
 
 				$this->setConfigExtStorage($arrQueryUri[4], $arrQueryUri[6], $value);
+			}
+			if ($arrQueryUri[5] == 'option') // /genapi.php/extstorages/{storage id}/option/{key}/{value} endpoint - sets external storages option key/value
+			{
+				$value = $arrQueryUri[7];
+				for ($i = 8; $i < count($arrQueryUri); $i++)
+				{
+					$value .= '/' . $arrQueryUri[$i];
+				}
+
+				$this->setOptionExtStorage($arrQueryUri[4], $arrQueryUri[6], $value);
 			}
 		}
 		elseif ($requestMethod == 'DELETE')
@@ -570,6 +582,20 @@ class FunctionController extends BaseController
 	private function setConfigExtStorage($storageId, $key, $value)
 	{
 		$command = self::$occ . ' files_external:config ' . $storageId . ' ' . $key . ' ' . $value;
+		if (exec($command, $arrExtStorage))
+		{
+			$responseData = json_encode($arrExtStorage);
+
+			$this->sendOkayOutput($responseData);
+		}
+	}
+
+	/**
+	 * "-X PUT /extstorages/{storage id}/option/{key}/{value}" Endoint - sets key/value pair in external storage options
+	 */
+	private function setOptionExtStorage($storageId, $key, $value)
+	{
+		$command = self::$occ . ' files_external:option ' . $storageId . ' ' . $key . ' ' . $value;
 		if (exec($command, $arrExtStorage))
 		{
 			$responseData = json_encode($arrExtStorage);
