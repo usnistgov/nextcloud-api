@@ -154,9 +154,13 @@ class FunctionController extends BaseController
 
 		if ($requestMethod == 'GET') // GET method
 		{
-			if (count($arrQueryUri) == 4)
+			if (count($arrQueryUri) == 4) // "/genapi.php/users" Endpoint - Gets info on all users
 			{
 				$this->getUsers();
+			}
+			elseif (count($arrQueryUri) == 5) // "/genapi.php/users/{user}" Endpoint - Gets info on one user
+			{
+				$this->getUser($arrQueryUri[4]);
 			}
 			else
 			{
