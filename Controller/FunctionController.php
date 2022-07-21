@@ -494,7 +494,7 @@ class FunctionController extends BaseController
 				{
 					$parsedExtStorages[$row[0]][$headers[$i]] = explode(", ", $row[$i]);
 				}
-				elseif ($i == 4) // Configuration set as keyed array
+				elseif ($i == 4 || $i == 5) // Configuration and option set as keyed array
 				{
 					if (strlen($row[$i]) == 0)
 					{
