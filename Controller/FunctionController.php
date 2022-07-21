@@ -381,6 +381,10 @@ class FunctionController extends BaseController
 				{
 					$this->createLocalExtStorage($arrQueryUri[5]);
 				}
+				elseif ($arrQueryUri[4] == 's3') // /genapi.php/extstorages/s3/{name} endpoint - create external storage of type s3 (not configured)
+				{
+					$this->createS3ExtStorage($arrQueryUri[5]);
+				}
 			}
 		}
 		elseif ($requestMethod == 'PUT')
@@ -538,6 +542,20 @@ class FunctionController extends BaseController
 	private function createLocalExtStorage($name)
 	{
 		$command = self::$occ . ' files_external:create ' . $name . ' local null::null';
+		if (exec($command, $arrExtStorage))
+		{
+			$responseData = json_encode($arrExtStorage);
+
+			$this->sendOkayOutput($responseData);
+		}
+	}
+
+	/**
+	 * "-X POST /extstorages/s3/{name}" Endpoint - creates external storage of type s3 (not configured)
+	 */
+	private function createS3ExtStorage($name)
+	{
+		$command = self::$occ . ' files_external:create ' . $name . ' amazons3 amazons3::accesskey';
 		if (exec($command, $arrExtStorage))
 		{
 			$responseData = json_encode($arrExtStorage);
