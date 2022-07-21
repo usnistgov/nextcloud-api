@@ -197,6 +197,7 @@ class FunctionController extends BaseController
 		$command = self::$occ . ' user:list -i -- output json';
 		if (exec($command, $arrUser))
 		{
+			echo "testing\r\n";
 			$responseData = json_decode($arrUser[0]);
 			echo $responseData;
 			echo "\r\n";
