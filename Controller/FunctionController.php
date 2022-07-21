@@ -185,7 +185,7 @@ class FunctionController extends BaseController
 		$command = self::$occ . ' user:list -i --output json';
 		if (exec($command, $arrUser))
 		{
-			$responseData = json_encode($arrUser);
+			$responseData = json_encode($arrUser[0]);
 
 			$this->sendOkayOutput($responseData);
 		}
@@ -199,7 +199,7 @@ class FunctionController extends BaseController
 		$command = self::$occ . ' user:list -i -- output json';
 		if (exec($command, $arrUser))
 		{
-			$responseData = json_encode($arrUser);
+			$responseData = json_encode($arrUser[0]);
 
 			$this->sendOkayOutput($responseData[$user]);
 		}
