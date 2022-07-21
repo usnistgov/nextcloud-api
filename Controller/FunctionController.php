@@ -48,6 +48,14 @@ class FunctionController extends BaseController
 			{
 				$this->auth(); // "/genapi.php/auth/" Endpoint
 			}
+			elseif ($resource == 'FILES') // "/genapi.php/files/" group of endpoints
+			{
+
+			}
+			elseif ($resource == 'USERS') // "/genapi.php/users/" group of endpoints
+			{
+				$this->users();
+			}
 			elseif ($resource == 'GROUPS') // "/genapi.php/groups/" group of endpoints
 			{
 				$this->groups();
@@ -130,6 +138,53 @@ class FunctionController extends BaseController
 		));
 		echo "Encode:\n " . print_r ($jwt, true) . "\n";
 		$this->sendOkayOutput($responseData);
+	}
+
+	/**
+	 * User resource endpoints
+	 * GET
+	 * - users
+	 */
+	private function users()
+	{
+		$strErrorDesc = '';
+		
+		$requestMethod = $this->getRequestMethod();
+		$arrQueryUri = $this->getUriSegments();
+
+		if ($requestMethod == 'GET') // GET method
+		{
+			if (count($arrQueryUri) == 4)
+			{
+				$this->getUsers();
+			}
+			else
+			{
+				$strErrorDesc = $requestMethod . ' ' . $this->getUri() . ' is not an available Method and Endpoint';
+				
+				$this->sendError404Output($strErrorDesc);
+			}
+		}
+		else // unsupported method
+		{
+			$strErrorDesc = $requestMethod . ' is not an available request Method';
+			
+			$this->sendError405Output($strErrorDesc);
+		}
+	}
+
+	/**
+	 * "-X GET /users" Endpoint - Gets list of all users
+	 */
+	private function getUsers()
+	{
+		$command = self::$occ . ' user:list -i --output json';
+		if (exec($command, $arrGroup))
+		{
+			$responseData = json_encode($this->parseGroups($arrGroup));
+
+			$this->sendOkayOutput($responseData);
+		}
 	}
 
 	/**
@@ -388,6 +443,12 @@ class FunctionController extends BaseController
 					$this->createS3ExtStorage($arrQueryUri[5]);
 				}
 			}
+			else
+			{
+				$strErrorDesc = $requestMethod . ' ' . $this->getUri() . ' is not an available Method and Endpoint';
+				
+				$this->sendError404Output($strErrorDesc);
+			}
 		}
 		elseif ($requestMethod == 'PUT')
 		{
@@ -401,7 +462,7 @@ class FunctionController extends BaseController
 
 				$this->setConfigExtStorage($arrQueryUri[4], $arrQueryUri[6], $value);
 			}
-			if ($arrQueryUri[5] == 'option') // /genapi.php/extstorages/{storage id}/option/{key}/{value} endpoint - sets external storages option key/value
+			elseif ($arrQueryUri[5] == 'option') // /genapi.php/extstorages/{storage id}/option/{key}/{value} endpoint - sets external storages option key/value
 			{
 				$value = $arrQueryUri[7];
 				for ($i = 8; $i < count($arrQueryUri); $i++)
@@ -411,6 +472,12 @@ class FunctionController extends BaseController
 
 				$this->setOptionExtStorage($arrQueryUri[4], $arrQueryUri[6], $value);
 			}
+			else
+			{
+				$strErrorDesc = $requestMethod . ' ' . $this->getUri() . ' is not an available Method and Endpoint';
+				
+				$this->sendError404Output($strErrorDesc);
+			}
 		}
 		elseif ($requestMethod == 'DELETE')
 		{
@@ -418,7 +485,7 @@ class FunctionController extends BaseController
 			{
 				$this->deleteExtStorage($arrQueryUri[4]);
 			}
-			if (count($arrQueryUri) == 7)
+			elseif (count($arrQueryUri) == 7)
 			{
 				if ($arrQueryUri[5] == 'users') // /genapi.php/extstorages/{storage id}/users/{user} endpoint - remove user from external storage applicable users
 				{
@@ -428,6 +495,12 @@ class FunctionController extends BaseController
 				{
 					$this->removeGroupExtStorage($arrQueryUri[4], $arrQueryUri[6]);
 				}
+			}
+			else
+			{
+				$strErrorDesc = $requestMethod . ' ' . $this->getUri() . ' is not an available Method and Endpoint';
+				
+				$this->sendError404Output($strErrorDesc);
 			}
 		}
 		else
