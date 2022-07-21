@@ -199,9 +199,7 @@ class FunctionController extends BaseController
 		{
 			$responseData = json_decode($arrUser[0]);
 
-			echo $user . "/r/n";
-
-			$this->sendOkayOutput(json_encode($responseData[$user]));
+			$this->sendOkayOutput(json_encode($responseData['"' . $user . '"']));
 		}
 	}
 
