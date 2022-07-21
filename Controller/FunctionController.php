@@ -198,6 +198,10 @@ class FunctionController extends BaseController
 		if (exec($command, $arrUser))
 		{
 			$responseData = json_decode($arrUser[0]);
+			echo $responseData;
+			echo "\r\n";
+			echo $responseData["adam.morey@nist.gov"]["user_id"];
+			echo "\r\n";
 
 			$this->sendOkayOutput(json_encode($responseData[$user]));
 		}
