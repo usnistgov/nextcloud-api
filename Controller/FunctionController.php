@@ -195,7 +195,7 @@ class FunctionController extends BaseController
 	private function getUser($user)
 	{
 		$command = self::$occ . ' user:list -i -- output json';
-		if (exec($command, $arrUser))
+		if (exec($command, $output, $arrUser))
 		{
 			echo "testing\r\n";
 			$responseData = json_decode($arrUser[0]);
@@ -208,7 +208,7 @@ class FunctionController extends BaseController
 		}
 		else
 		{
-			echo "testing1\r\n";
+			echo $output . "\r\n";
 		}
 	}
 
