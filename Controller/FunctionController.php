@@ -179,9 +179,11 @@ class FunctionController extends BaseController
 	private function getUsers()
 	{
 		$command = self::$occ . ' user:list -i --output json';
-		if (exec($command, $arrGroup))
+		echo $command;
+		echo "\r\n";
+		if (exec($command, $arrUser))
 		{
-			$responseData = json_encode($this->parseGroups($arrGroup));
+			$responseData = json_encode($this->parseGroups($arrUser));
 
 			$this->sendOkayOutput($responseData);
 		}
