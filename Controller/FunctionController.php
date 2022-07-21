@@ -195,15 +195,11 @@ class FunctionController extends BaseController
 	private function getUser($user)
 	{
 		$command = self::$occ . ' user:list -i --output json';
-		if (exec($command, $output, $arrUser))
+		if (exec($command, $arrUser))
 		{
 			$responseData = json_decode($arrUser[0]);
 
 			$this->sendOkayOutput(json_encode($responseData[$user]));
-		}
-		else
-		{
-			print_r($output);
 		}
 	}
 
