@@ -208,7 +208,7 @@ class FunctionController extends BaseController
 		}
 		else
 		{
-			echo $output . "\r\n";
+			print_r($output);
 		}
 	}
 
