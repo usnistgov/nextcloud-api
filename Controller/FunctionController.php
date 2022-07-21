@@ -183,7 +183,7 @@ class FunctionController extends BaseController
 		echo "\r\n";
 		if (exec($command, $arrUser))
 		{
-			$responseData = json_encode($this->parseGroups($arrUser));
+			$responseData = json_encode($arrUser);
 
 			$this->sendOkayOutput($responseData);
 		}
