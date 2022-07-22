@@ -144,6 +144,7 @@ class FunctionController extends BaseController
 	 * User resource endpoints
 	 * GET
 	 * - users
+	 * - users/{user}
 	 */
 	private function users()
 	{
@@ -194,12 +195,13 @@ class FunctionController extends BaseController
 	 */
 	private function getUser($user)
 	{
-		$command = self::$occ . ' user:list -i --output json';
+		$command = self::$occ . ' user:info ' . $user . ' --output json';
 		if (exec($command, $arrUser))
 		{
-			$responseData = json_decode($arrUser[0], true);
+			$this->sendOkayoutput($arrUser[0]);
+			//$responseData = json_decode($arrUser[0], true);
 
-			$this->sendOkayOutput(json_encode($responseData[$user]));
+			//$this->sendOkayOutput(json_encode($responseData[$user]));
 		}
 	}
 
