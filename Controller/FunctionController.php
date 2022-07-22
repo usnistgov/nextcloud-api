@@ -176,7 +176,7 @@ class FunctionController extends BaseController
 		}
 		elseif ($requestMethod == 'PUT') // PUT method
 		{
-			if (count($arrQueryUri[6]))
+			if (count($arrQueryUri) == 6)
 			{
 				if ($arrQueryUri[5] == 'enable') // "/genapi.php/users/{user}/enable" Endpoint - enables user
 				{
