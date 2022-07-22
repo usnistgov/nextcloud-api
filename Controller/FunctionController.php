@@ -11,8 +11,8 @@ class FunctionController extends BaseController
 	 * uri positions                0   1          2          3                   4+
 	 *
 	 * {resource} can be one of the following
-	 * - Files (UNAVAILABLE)
-	 * - Users (UNAVAILABLE)
+	 * - Files
+	 * - Users
 	 * - Groups
 	 * - ExtStorage
 	 * - Test (Returns Method and Query uri)
@@ -141,10 +141,73 @@ class FunctionController extends BaseController
 	}
 
 	/**
-	 * User resource endpoints
+	 * Files resource endpoints
+	 * PUT
+	 * - files/scan
+	 * - files/scan/{user}
+	 */
+	private function files()
+	{
+		$strErrorDesc = '';
+		
+		$requestMethod = $this->getRequestMethod();
+		$arrQueryUri = $this->getUriSegments();
+
+		if ($requestMethod == 'PUT') // PUT method
+		{
+			if (count($arrQueryUri) == 4) // "/genapi.php/files/scan" Endpoint - scans all file systems
+			{
+				$this->scanAllFiles();
+			}
+			elseif (count($arrQueryUri) == 5) // "/genapi.php/files/scan/{user}" Endpoint - scan user's file system
+			{
+				$this->scanUserFiles($arrQueryUri[4]);
+			}
+		}
+		else // unsupported method
+		{
+			$strErrorDesc = $requestMethod . ' is not an available request Method';
+			
+			$this->sendError405Output($strErrorDesc);
+		}
+	}
+
+	/**
+	 * "-X PUT /files/scan" Endpoint - scans all users file systems
+	 */
+	private function scanAllFiles()
+	{
+		$command = self::$occ . ' files:scan --all';
+		if (exec($command, $arrUser))
+		{
+			$responseData = json_encode($arrUser);
+
+			$this->sendOkayOutput($responseData);
+		}
+	}
+
+	/**
+	 * "-X PUT /files/scan/{user}" Endpoint - scan user file system
+	 */
+	private function scanUserFiles($user)
+	{
+		$command = self::$occ . ' files:scan ' . $user;
+		if (exec($command, $arrUser))
+		{
+			$responseData = json_encode($arrUser);
+
+			$this->sendOkayOutput($responseData);
+		}
+	}
+
+	/**
+	 * Users resource endpoints
 	 * GET
 	 * - users
 	 * - users/{user}
+	 * PUT
+	 * - users/{user}/enable
+	 * - users/{user}/disable
 	 */
 	private function users()
 	{
@@ -170,10 +233,6 @@ class FunctionController extends BaseController
 				$this->sendError404Output($strErrorDesc);
 			}
 		}
-		elseif ($requestMethod == 'POST') // POST method
-		{
-
-		}
 		elseif ($requestMethod == 'PUT') // PUT method
 		{
 			if (count($arrQueryUri) == 6)
@@ -187,10 +246,6 @@ class FunctionController extends BaseController
 					$this->disableUser($arrQueryUri[4]);
 				}
 			}
-		}
-		elseif ($requestMethod == 'DELETE') // DELETE method
-		{
-
 		}
 		else // unsupported method
 		{
