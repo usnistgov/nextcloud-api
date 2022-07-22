@@ -170,6 +170,28 @@ class FunctionController extends BaseController
 				$this->sendError404Output($strErrorDesc);
 			}
 		}
+		elseif ($requestMethod == 'POST') // POST method
+		{
+
+		}
+		elseif ($requestMethod == 'PUT') // PUT method
+		{
+			if (count($arrQueryUri[6]))
+			{
+				if ($arrQueryUri[5] == 'enable') // "/genapi.php/users/{user}/enable" Endpoint - enables user
+				{
+
+				}
+				elseif ($arrQueryUri[5] == 'disable') // "/genapi.php/users/{user}/diable" Endpoint - disables user
+				{
+
+				}
+			}
+		}
+		elseif ($requestMethod == 'DELETE') // DELETE method
+		{
+
+		}
 		else // unsupported method
 		{
 			$strErrorDesc = $requestMethod . ' is not an available request Method';
@@ -198,10 +220,35 @@ class FunctionController extends BaseController
 		$command = self::$occ . ' user:info ' . $user . ' --output json';
 		if (exec($command, $arrUser))
 		{
-			$this->sendOkayoutput($arrUser[0]);
-			//$responseData = json_decode($arrUser[0], true);
+			$this->sendOkayOutput($arrUser[0]);
+		}
+	}
 
-			//$this->sendOkayOutput(json_encode($responseData[$user]));
+	/**
+	 * "-X PUT /users/{user}/enable" Endpoint - Enables user
+	 */
+	private function enableUser($user)
+	{
+		$command = self::$occ . ' user:enable ' . $user;
+		if (exec($command, $arrUser))
+		{
+			$responseData = json_encode($arrUser);
+
+			$this->sendOkayOutput($responseData);
+		}
+	}
+
+	/**
+	 * "-X PUT /users/{user}/disable" Endpoint - Disables user
+	 */
+	private function disableUser($user)
+	{
+		$command = self::$occ . ' user:disable ' . $user;
+		if (exec($command, $arrUser))
+		{
+			$responseData = json_encode($arrUser);
+
+			$this->sendOkayOutput($responseData);
 		}
 	}
 
@@ -350,7 +397,7 @@ class FunctionController extends BaseController
 		{
 			$responseData = json_encode($arrGroup);
 
-			$this->sendOkayOutput($responseData);
+			$this->sendCreatedOutput($responseData);
 		}
 	}
 
@@ -364,7 +411,7 @@ class FunctionController extends BaseController
 		{
 			$responseData = json_encode($arrGroup);
 
-			$this->sendOkayOutput($responseData);
+			$this->sendCreatedOutput($responseData);
 		}
 	}
 
@@ -649,7 +696,7 @@ class FunctionController extends BaseController
 		{
 			$responseData = json_encode($arrExtStorage);
 
-			$this->sendOkayOutput($responseData);
+			$this->sendCreatedOutput($responseData);
 		}
 	}
 
@@ -663,7 +710,7 @@ class FunctionController extends BaseController
 		{
 			$responseData = json_encode($arrExtStorage);
 
-			$this->sendOkayOutput($responseData);
+			$this->sendCreatedOutput($responseData);
 		}
 	}
 

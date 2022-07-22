@@ -86,6 +86,19 @@ class BaseController
 	}
 
 	/**
+	 * Send API output created
+	 * 
+	 * @param string $responseData
+	 */
+	protected function sendCreatedOutput($data)
+	{
+		$this->sendOutput(
+			$data,
+			array('Content-Type: application/json', 'HTTP/1.1 201 Created')
+		);
+	}
+
+	/**
 	 * Send API output error
 	 *
 	 * @param string $strErrorDesc
