@@ -180,11 +180,11 @@ class FunctionController extends BaseController
 			{
 				if ($arrQueryUri[5] == 'enable') // "/genapi.php/users/{user}/enable" Endpoint - enables user
 				{
-
+					$this->enableUser($arrQueryUri[4]);
 				}
 				elseif ($arrQueryUri[5] == 'disable') // "/genapi.php/users/{user}/diable" Endpoint - disables user
 				{
-
+					$this->disableUser($arrQueryUri[4]);
 				}
 			}
 		}
