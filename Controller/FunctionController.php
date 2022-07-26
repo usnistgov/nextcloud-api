@@ -11,7 +11,7 @@ class FunctionController extends BaseController
 	 * uri positions                0   1          2          3                   4+
 	 *
 	 * {resource} can be one of the following
-	 * - Files
+	 * - Files {not available}
 	 * - Users
 	 * - Groups
 	 * - ExtStorage
@@ -48,10 +48,10 @@ class FunctionController extends BaseController
 			{
 				$this->auth(); // "/genapi.php/auth/" Endpoint
 			}
-			elseif ($resource == 'FILES') // "/genapi.php/files/" group of endpoints
-			{
+			//elseif ($resource == 'FILES') // "/genapi.php/files/" group of endpoints
+			//{
 
-			}
+			//}
 			elseif ($resource == 'USERS') // "/genapi.php/users/" group of endpoints
 			{
 				$this->users();
@@ -136,7 +136,7 @@ class FunctionController extends BaseController
 			'token' => $jwt,
 			'expires' => $exp
 		));
-		echo "Encode:\n " . print_r ($jwt, true) . "\n";
+		
 		$this->sendOkayOutput($responseData);
 	}
 
