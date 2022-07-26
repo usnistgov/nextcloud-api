@@ -25,7 +25,24 @@ class FunctionController extends BaseController
 	private static $occ = 'php /var/www/nextcloud/occ';
 
 	// JWT key
-	private static $key = 'privatekey';
+	private static $privateKey = <<<EOD
+	-----BEGIN RSA PRIVATE KEY-----
+	AAABAQC3HonxTxT8Pa817GinG1H9lgi8YqaoHgFg4wo9r5OadCa1L4HB91aQeD80
+	0eY3A86vY2GCqeWSw9YCjKInbRj0z5b12eOt6BGtmdxDJ6wuU/OSlSrqPdA5rKPB
+	ZcvwrJGh41SUMFBNpKIO9bpqtwjdaBDiui2NjL721LV2szBv0L+w5tolNtvkd0Nz
+	yX3woPj4/f92yLf/oIwKDOsHJO35gfDHs57O6oyEtSfl5pevge0nhctURTJqSMPl
+	0M1eN2iQPeKK3FCNf+sZ3luessYIP2fq/0UxF71iZqK2OMkd37i7piz6Zh11L8UR
+	5MGuB9ntqPCmDA83BGHQhXLBjOYBAAAAgQD6Pp1xyvYr9evVukOT5a1tvadqSgPm
+	K64rJFE7HpVX8Plq5MabyZiqgj8jQwOoeVbkca5XRctDhZuUXm7HJC7jwXBx9jKH
+	9B/LOmz7HS6LmqvWx0UJDziuB32IviMzww/DbbzsAHKtTEnXk/w+rTWcYy9QaKIS
+	OVb810n0xtkDGwAAAIEAwvxv+9sTJHGx7u3yOu3oi3KYrTy+9UCjq5YqP1UtwJKr
+	JnlwARm4cD1fbr++slN3ldVBpKjn45nWXYAVqRz+ttDgoEjFW7WiIrBcM6XeRSAt
+	z1yC1oDwT2/WyCDIiDhvrbxb++jkxdzrwC3TECNfcqzp6z6VgO044hQOv00WKsEA
+	AACAaJiXsByhuVpGSF/Zn4a+Calhi5SjXQu2MmtAxtQRr1PrlxpE1Ghn+3AlAIfd
+	J/eJNEZgUID04N/2sgBtliMMzI93osmPv7qzkk+0m21Po6LpWqeH+jM1+UmHlj2b
+	NHiXH8uQtPbfkNh4FA1lT26l1bgveW+uSqWrHgBQExbaLUE=
+	-----END RSA PRIVATE KEY-----
+	EOD;
 
 	/**
 	 * All resource endpoints
@@ -131,13 +148,56 @@ class FunctionController extends BaseController
 			'exp' => $exp,
 		);
 
-		$jwt = JWT::encode($payload, self::$key, 'HS256');
+		$jwt = JWT::encode($payload, self::$privateKey, 'HS256');
 		$responseData = json_encode(array(
 			'token' => $jwt,
 			'expires' => $exp
 		));
 		
 		$this->sendOkayOutput($responseData);
+	}
+
+	/**
+	 *"/testauth/" Endpoint - prints method with query uri if authenticated
+	 */
+	private function testAuth()
+	{
+		$strErrorDesc = '';
+		$strErrorHeader = '';
+		$requestMethod = $this->getRequestMethod();
+		$arrQueryStringParams = $this->getQueryStringParams();
+		$arrQueryUri = $this->getUriSegments();
+
+		$headers = apache_request_headers();
+		$token = str_replace('Bearer ', '', $headers['Authorization']);
+
+		try 
+		{
+			//$payload = JWT::decode($token, new Key(self::$key, 'HS256'));
+			$payload = JWT::decode($token, new Key(self::$privateKey, 'HS256'));
+			$decoded_array = (array)$payload;
+			echo "Decode:\n" . print_r($decoded_array, true) . "\n";
+			$this->sendOkayOutput(json_encode($payload));
+
+			array_unshift($arrQueryUri, $requestMethod);
+			$responseData = json_encode($arrQueryUri);
+			
+			// send output
+			if (!$strErrorDesc)
+			{
+				$this->sendOkayOutput($responseData);
+			}
+			else
+			{
+				$this->sendErrorOutput($strErrorDesc, $strErrorHeader);
+			}
+		}
+		catch (\Exception $e)
+		{
+			$strErrorDesc = $requestMethod . ' ' . $this->getUri() . ' requires authorization: ' . $e->getMessage();
+
+			$this->sendError401Output($strErrorDesc);
+		}
 	}
 
 	/**
@@ -905,49 +965,6 @@ class FunctionController extends BaseController
 		else
 		{
 			$this->sendErrorOutput($strErrorDesc, $strErrorHeader);
-		}
-	}
-
-	/**
-	 *"/testauth/" Endpoint - prints method with query uri if authenticated
-	 */
-	private function testAuth()
-	{
-		$strErrorDesc = '';
-		$strErrorHeader = '';
-		$requestMethod = $this->getRequestMethod();
-		$arrQueryStringParams = $this->getQueryStringParams();
-		$arrQueryUri = $this->getUriSegments();
-
-		$headers = apache_request_headers();
-		$token = str_replace('Bearer ', '', $headers['Authorization']);
-
-		try 
-		{
-			//$payload = JWT::decode($token, new Key(self::$key, 'HS256'));
-			$payload = JWT::decode($token, new Key('testing', 'HS256'));
-			$decoded_array = (array)$payload;
-			echo "Decode:\n" . print_r($decoded_array, true) . "\n";
-			$this->sendOkayOutput(json_encode($payload));
-
-			array_unshift($arrQueryUri, $requestMethod);
-			$responseData = json_encode($arrQueryUri);
-			
-			// send output
-			if (!$strErrorDesc)
-			{
-				$this->sendOkayOutput($responseData);
-			}
-			else
-			{
-				$this->sendErrorOutput($strErrorDesc, $strErrorHeader);
-			}
-		}
-		catch (\Exception $e)
-		{
-			$strErrorDesc = $requestMethod . ' ' . $this->getUri() . ' requires authorization: ' . $e->getMessage();
-
-			$this->sendError401Output($strErrorDesc);
 		}
 	}
 }
