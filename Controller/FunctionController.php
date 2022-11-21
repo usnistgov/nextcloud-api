@@ -250,7 +250,7 @@ class FunctionController extends BaseController
 	 */
 	private function createDir($dir)
 	{
-		$command = "curl -X MKCOL -u " . self::$usr . " https://nextcloud-dev.nist.gov/remote.php/dav/files/oar_api/" . $dir;
+		$command = "curl -X MKCOL -k -u " . self::$usr . " https://localhost/remote.php/dav/files/oar_api/" . $dir;
 		echo $command;
 		if (exec($command, $arrUser))
 		{
