@@ -225,21 +225,7 @@ class FunctionController extends BaseController
 				}
 				$this->createDir($dir);
 			}
-		}
-		elseif ($requestMethod == 'PUT') // PUT method
-		{
-			if (count($arrQueryUri) == 5) // "/genapi.php/files/scan" Endpoint - scans all file systems
-			{
-				$this->scanAllFiles();
-			}
-			elseif (count($arrQueryUri) == 6) // "/genapi.php/files/scan/{user}" Endpoint - scan user's file system
-			{
-				$this->scanUserFiles($arrQueryUri[4]);
-			}
-		}
-		elseif ($requestMethod == 'PATCH') // PATCH method
-		{
-			if ($arrQueryUri[4] == 'sharediruser') // "/genapi.php/files/sharediruser/{user}/{permissions}/{directory}" Endpoint - share directory with user with permissions
+			elseif ($arrQueryUri[4] == 'sharediruser') // "/genapi.php/files/sharediruser/{user}/{permissions}/{directory}" Endpoint - share directory with user with permissions
 			{
 				$user = $arrQueryUri[5];
 				$perm = $arrQueryUri[6];
@@ -260,6 +246,17 @@ class FunctionController extends BaseController
 					$dir .= "/" . $arrQueryUri[$i];
 				}
 				$this->shareDirGroup($group, $perm, $dir);
+			}
+		}
+		elseif ($requestMethod == 'PUT') // PUT method
+		{
+			if (count($arrQueryUri) == 5) // "/genapi.php/files/scan" Endpoint - scans all file systems
+			{
+				$this->scanAllFiles();
+			}
+			elseif (count($arrQueryUri) == 6) // "/genapi.php/files/scan/{user}" Endpoint - scan user's file system
+			{
+				$this->scanUserFiles($arrQueryUri[4]);
 			}
 		}
 		else // unsupported method
