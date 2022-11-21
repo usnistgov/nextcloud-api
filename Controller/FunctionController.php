@@ -315,7 +315,6 @@ class FunctionController extends BaseController
 	private function shareDirUser($user, $perm, $dir)
 	{
 		$command = "curl -X POST -H \"ocs-apirequest:true\" -k -u " . self::$usr . " \"https://localhost/ocs/v2.php/apps/files_sharing/api/v1/shares?shareType=0" . "&path=" . $dir . "&shareWith=" . $user . "&permissions=" . $perm . "\"";
-		echo $command;
 		if (exec($command, $arrUser))
 		{
 			$responseData = json_encode($arrUser);
@@ -327,8 +326,9 @@ class FunctionController extends BaseController
 	/**
 	 * "-X PATCH /files/sharedirgroup/{group}/{permissions}/{directory}" Endpoing - share directory with group with permissions
 	 */
-	private function shareDirGroup($user, $perm, $dir)
+	private function shareDirGroup($group, $perm, $dir)
 	{
+		$command = "curl -X POST -H \"ocs-apirequest:true\" -k -u " . self::$usr . " \"https://localhost/ocs/v2.php/apps/files_sharing/api/v1/shares?shareType=1" . "&path=" . $dir . "&shareWith=" . $group . "&permissions=" . $perm . "\"";
 		if (exec($command, $arrUser))
 		{
 			$responseData = json_encode($arrUser);
