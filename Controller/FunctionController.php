@@ -221,7 +221,7 @@ class FunctionController extends BaseController
 				$dir = $arrQueryUri[5];
 				for ($i = 6; $i < count($arrQueryUri); $i++)
 				{
-					$dir .= "/" + $arrQueryUri[$i];
+					$dir .= "/" . $arrQueryUri[$i];
 				}
 				$this->createDir($dir);
 			}
@@ -235,6 +235,31 @@ class FunctionController extends BaseController
 			elseif (count($arrQueryUri) == 6) // "/genapi.php/files/scan/{user}" Endpoint - scan user's file system
 			{
 				$this->scanUserFiles($arrQueryUri[4]);
+			}
+		}
+		elseif ($requestMethod == 'PATCH') // PATCH method
+		{
+			if ($arrQueryUri[4] == 'sharediruser') // "/genapi.php/files/sharediruser/{user}/{permissions}/{directory}" Endpoint - share directory with user with permissions
+			{
+				$user = $arrQueryUri[5];
+				$perm = $arrQueryUri[6];
+				$dir = $arrQueryUri[7];
+				for ($i = 8; $i < count($arrQueryUri); $i++)
+				{
+					$dir .= "/" . $arrQueryUri[$i];
+				}
+				$this->shareDirUser($user, $perm, $dir);
+			}
+			elseif ($arrQueryUri[4] == 'sharedirgroup') // "/genapi.php/files/sharedirgroup/{group}/{permissions}/{directory}" Endpoint - share directory with group with permissions
+			{
+				$group = $arrQueryUri[5];
+				$perm = $arrQueryUri[6];
+				$dir = $arrQueryUri[7];
+				for ($i = 8; $i < count($arrQueryUri); $i++)
+				{
+					$dir .= "/" . $arrQueryUri[$i];
+				}
+				$this->shareDirGroup($group, $perm, $dir);
 			}
 		}
 		else // unsupported method
@@ -279,6 +304,33 @@ class FunctionController extends BaseController
 	private function scanUserFiles($user)
 	{
 		$command = self::$occ . ' files:scan ' . $user;
+		if (exec($command, $arrUser))
+		{
+			$responseData = json_encode($arrUser);
+
+			$this->sendOkayOutput($responseData);
+		}
+	}
+
+	/**
+	 * "-X PATCH /files/sharediruser/{user}/{permissions}/{directory}" Endpoint - share directory with user with permissions
+	 */
+	private function shareDirUser($user, $perm, $dir)
+	{
+		$command = "curl -X POST -k -u " . self::$usr . " https://localhost/ocs/v2.php/apps/files_sharing/api/v1/shares?shareType=0" . "&path=" . $dir . "&shareWith=" . $user . "&permissions=" . $perm;
+		if (exec($command, $arrUser))
+		{
+			$responseData = json_encode($arrUser);
+
+			$this->sendOkayOutput($responseData);
+		}
+	}
+
+	/**
+	 * "-X PATCH /files/sharedirgroup/{group}/{permissions}/{directory}" Endpoing - share directory with group with permissions
+	 */
+	private function shareDirGroup($user, $perm, $dir)
+	{
 		if (exec($command, $arrUser))
 		{
 			$responseData = json_encode($arrUser);
