@@ -66,10 +66,10 @@ class FunctionController extends BaseController
 			{
 				$this->auth(); // "/genapi.php/auth/" Endpoint
 			}
-			//elseif ($resource == 'FILES') // "/genapi.php/files/" group of endpoints
-			//{
-
-			//}
+			elseif ($resource == 'FILES') // "/genapi.php/files/" group of endpoints
+			{
+				$this->files();
+			}
 			elseif ($resource == 'USERS') // "/genapi.php/users/" group of endpoints
 			{
 				$this->users();
