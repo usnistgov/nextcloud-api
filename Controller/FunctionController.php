@@ -318,6 +318,7 @@ class FunctionController extends BaseController
 	private function shareDirUser($user, $perm, $dir)
 	{
 		$command = "curl -X POST -k -u " . self::$usr . " https://localhost/ocs/v2.php/apps/files_sharing/api/v1/shares?shareType=0" . "&path=" . $dir . "&shareWith=" . $user . "&permissions=" . $perm;
+		echo $command;
 		if (exec($command, $arrUser))
 		{
 			$responseData = json_encode($arrUser);
