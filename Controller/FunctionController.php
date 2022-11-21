@@ -23,6 +23,7 @@ class FunctionController extends BaseController
 	 * Path to occ command
 	 */
 	private static $occ = 'php /var/www/nextcloud/occ';
+	private static $usr = '';
 
 	// JWT key
 	private static $privateKey = <<<EOD
@@ -213,13 +214,25 @@ class FunctionController extends BaseController
 		$requestMethod = $this->getRequestMethod();
 		$arrQueryUri = $this->getUriSegments();
 
-		if ($requestMethod == 'PUT') // PUT method
+		if ($requestMethod == 'POST') // POST method
 		{
-			if (count($arrQueryUri) == 4) // "/genapi.php/files/scan" Endpoint - scans all file systems
+			if ($arrQueryUri[4] == 'createdir') // "/genapi.php/files/createdir/{directory name}" Endpoint - creates directory
+			{
+				$dir = $arrQueryUri[5];
+				for ($i = 6; $i < count($arrQueryUri); $i++)
+				{
+					$dir .= "/" + $arrQueryUri[$i];
+				}
+				$this->createDir($dir);
+			}
+		}
+		elseif ($requestMethod == 'PUT') // PUT method
+		{
+			if (count($arrQueryUri) == 5) // "/genapi.php/files/scan" Endpoint - scans all file systems
 			{
 				$this->scanAllFiles();
 			}
-			elseif (count($arrQueryUri) == 5) // "/genapi.php/files/scan/{user}" Endpoint - scan user's file system
+			elseif (count($arrQueryUri) == 6) // "/genapi.php/files/scan/{user}" Endpoint - scan user's file system
 			{
 				$this->scanUserFiles($arrQueryUri[4]);
 			}
@@ -229,6 +242,20 @@ class FunctionController extends BaseController
 			$strErrorDesc = $requestMethod . ' is not an available request Method';
 			
 			$this->sendError405Output($strErrorDesc);
+		}
+	}
+
+	/**
+	 * "-X POST /files/createdir/{directory name}" Endpoint - creates directory
+	 */
+	private function createDir($dir)
+	{
+		$command = "curl -X MKCOL -u " + self::$usr + " https://nextcloud-dev.nist.gov/remote.php/dav/files/oar_api/" + $dir;
+		if (exec($command, $arrUser))
+		{
+			$responseData = json_encode($arrUser);
+
+			$this->sendOkayOutput($responseData);
 		}
 	}
 
