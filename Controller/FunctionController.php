@@ -68,6 +68,7 @@ class FunctionController extends BaseController
 		}
 		else
 		{
+			echo 'working!';
 			$resource = strtoupper($arrQueryUri[3]);
 			
 			if ($resource == 'AUTH')
@@ -80,6 +81,7 @@ class FunctionController extends BaseController
 			}
 			elseif ($resource == 'USERS') // "/genapi.php/users/" group of endpoints
 			{
+				echo 'its users';
 				$this->users();
 			}
 			elseif ($resource == 'GROUPS') // "/genapi.php/groups/" group of endpoints
