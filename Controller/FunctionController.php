@@ -464,6 +464,7 @@ class FunctionController extends BaseController
 	 */
 	private function createUser($user)
 	{
+		echo 'trying to connect';
 		// create connection
 		$db = new mysqli(self::$dbhost, self::$dbuser, self::$dbpass, self::$dbname);
 		// check connection
@@ -473,7 +474,7 @@ class FunctionController extends BaseController
 		}
 		else
 		{
-			die ("Connection successful");
+			echo 'connected';
 		}
 	}
 
