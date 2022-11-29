@@ -23,7 +23,15 @@ class FunctionController extends BaseController
 	 * Path to occ command
 	 */
 	private static $occ = 'php /var/www/nextcloud/occ';
+
+	// passthrough credentials
 	private static $usr = '';
+
+	// db credentials
+	private static $dbhost = '';
+	private static $dbuser = '';
+	private static $dbpass = '';
+	private static $dbname = '';
 
 	// JWT key
 	private static $privateKey = <<<EOD
@@ -310,7 +318,7 @@ class FunctionController extends BaseController
 	}
 
 	/**
-	 * "-X PATCH /files/sharediruser/{user}/{permissions}/{directory}" Endpoint - share directory with user with permissions
+	 * "-X POST /files/sharediruser/{user}/{permissions}/{directory}" Endpoint - share directory with user with permissions
 	 */
 	private function shareDirUser($user, $perm, $dir)
 	{
@@ -324,7 +332,7 @@ class FunctionController extends BaseController
 	}
 
 	/**
-	 * "-X PATCH /files/sharedirgroup/{group}/{permissions}/{directory}" Endpoing - share directory with group with permissions
+	 * "-X POST /files/sharedirgroup/{group}/{permissions}/{directory}" Endpoing - share directory with group with permissions
 	 */
 	private function shareDirGroup($group, $perm, $dir)
 	{
@@ -384,6 +392,13 @@ class FunctionController extends BaseController
 				}
 			}
 		}
+		elseif ($requestMethod == 'POST') // POST method
+		{
+			if (count($arrQueryUri) == 5)
+			{
+				$this->createUser($arrQueryUri[4]); // "/genapi.php/users/{user}" Endpoint - creates user
+			}
+		}
 		else // unsupported method
 		{
 			$strErrorDesc = $requestMethod . ' is not an available request Method';
@@ -441,6 +456,24 @@ class FunctionController extends BaseController
 			$responseData = json_encode($arrUser);
 
 			$this->sendOkayOutput($responseData);
+		}
+	}
+
+	/**
+	 * "-X POST /users/{user}" Endpoint - creates user
+	 */
+	private function createUser($user)
+	{
+		// create connection
+		$db = new mysqli(self::$dbhost, self::$dbuser, self::$dbpass, self::$dbname);
+		// check connection
+		if ($db->connect_error)
+		{
+			die ("connection failed: " . $db->connect_error);
+		}
+		else
+		{
+			die ("Connection successful");
 		}
 	}
 
