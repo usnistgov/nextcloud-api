@@ -394,8 +394,10 @@ class FunctionController extends BaseController
 		}
 		elseif ($requestMethod == 'POST') // POST method
 		{
+			echo 'its a post';
 			if (count($arrQueryUri) == 5)
 			{
+				echo 'its a create user';
 				$this->createUser($arrQueryUri[4]); // "/genapi.php/users/{user}" Endpoint - creates user
 			}
 		}
