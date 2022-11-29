@@ -68,7 +68,6 @@ class FunctionController extends BaseController
 		}
 		else
 		{
-			echo 'working!';
 			$resource = strtoupper($arrQueryUri[3]);
 			
 			if ($resource == 'AUTH')
@@ -81,7 +80,6 @@ class FunctionController extends BaseController
 			}
 			elseif ($resource == 'USERS') // "/genapi.php/users/" group of endpoints
 			{
-				echo 'its users';
 				$this->users();
 			}
 			elseif ($resource == 'GROUPS') // "/genapi.php/groups/" group of endpoints
@@ -396,10 +394,8 @@ class FunctionController extends BaseController
 		}
 		elseif ($requestMethod == 'POST') // POST method
 		{
-			echo 'its a post';
 			if (count($arrQueryUri) == 5)
 			{
-				echo 'its a create user';
 				$this->createUser($arrQueryUri[4]); // "/genapi.php/users/{user}" Endpoint - creates user
 			}
 		}
@@ -468,7 +464,6 @@ class FunctionController extends BaseController
 	 */
 	private function createUser($user)
 	{
-		echo 'trying to connect';
 		// create connection
 		$db = new mysqli(self::$dbhost, self::$dbuser, self::$dbpass, self::$dbname);
 		// check connection
@@ -476,10 +471,19 @@ class FunctionController extends BaseController
 		{
 			die ("connection failed: " . $db->connect_error);
 		}
+
+		$sql = "INSERT INTO oc_user_saml_users (uid) VALUES ('" . $user . "');";
+
+		if ($db->query($sql) === TRUE)
+		{
+			echo $user . " added";
+		}
 		else
 		{
-			echo 'connected';
+			echo "Error: " . $sql . "<br>" . $db->error;
 		}
+
+		$db->close();
 	}
 
 	/**
