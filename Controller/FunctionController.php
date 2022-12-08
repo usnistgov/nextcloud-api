@@ -472,18 +472,28 @@ class FunctionController extends BaseController
 			die ("connection failed: " . $db->connect_error);
 		}
 
-		$sql = "INSERT INTO oc_user_saml_users (uid) VALUES ('" . $user . "');";
+		// check if user already exists in database
+		$sqlCheck = "SELECT COUNT(*) FROM oc_user_saml_users WHERE uid='" . $user . "';";
 
-		if ($db->query($sql) === TRUE)
+		$checkResult = $db->query($sqlCheck);
+		foreach ($checkResult as $row)
 		{
-			echo $user . " added";
-		}
-		else
-		{
-			echo "Error: " . $sql . "<br>" . $db->error;
+			print_r($row);
 		}
 
-		$db->close();
+		// add user to database
+		//$sql = "INSERT INTO oc_user_saml_users (uid) VALUES ('" . $user . "');";
+
+		//if ($db->query($sql) === TRUE)
+		//{
+		//	echo $user . " added";
+		//}
+		//else
+		//{
+		//	echo "Error: " . $sql . "<br>" . $db->error;
+		//}
+
+		//$db->close();
 	}
 
 	/**
