@@ -478,7 +478,16 @@ class FunctionController extends BaseController
 		$checkResult = $db->query($sqlCheck);
 		foreach ($checkResult as $row)
 		{
-			print_r($row["COUNT(*)"]);
+			$count = $row["COUNT(*)"];
+		}
+
+		if ($count > 0)
+		{
+			print_r($user . " already exists");
+		}
+		else
+		{
+			print_r("adding " . $user);
 		}
 
 		// add user to database
