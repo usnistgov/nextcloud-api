@@ -488,21 +488,20 @@ class FunctionController extends BaseController
 		else
 		{
 			print_r("adding " . $user);
+			// add user to database
+			$sql = "INSERT INTO oc_user_saml_users (uid) VALUES ('" . $user . "');";
+
+			if ($db->query($sql) === TRUE)
+			{
+				echo $user . " added";
+			}
+			else
+			{
+				echo "Error: " . $sql . "<br>" . $db->error;
+			}
 		}
 
-		// add user to database
-		//$sql = "INSERT INTO oc_user_saml_users (uid) VALUES ('" . $user . "');";
-
-		//if ($db->query($sql) === TRUE)
-		//{
-		//	echo $user . " added";
-		//}
-		//else
-		//{
-		//	echo "Error: " . $sql . "<br>" . $db->error;
-		//}
-
-		//$db->close();
+		$db->close();
 	}
 
 	/**
