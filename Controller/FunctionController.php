@@ -1,7 +1,7 @@
 <?php
 
-use \Firebase\JWT\JWT;
-use \Firebase\JWT\Key;
+use \Firebase\JWT\JWT; // LIKELY TO BE DELETED
+use \Firebase\JWT\Key; // LIKELY TO BE DLEETED
 
 class FunctionController extends BaseController
 {
@@ -11,7 +11,7 @@ class FunctionController extends BaseController
 	 * uri positions                0   1          2          3                   4+
 	 *
 	 * {resource} can be one of the following
-	 * - Files {not available}
+	 * - Files
 	 * - Users
 	 * - Groups
 	 * - ExtStorage
@@ -33,7 +33,7 @@ class FunctionController extends BaseController
 	private static $dbpass = '';
 	private static $dbname = '';
 
-	// JWT key
+	// JWT key, LIKELY TO BE DELETED
 	private static $privateKey = <<<EOD
 	-----BEGIN RSA PRIVATE KEY-----
 	AAABAQC3HonxTxT8Pa817GinG1H9lgi8YqaoHgFg4wo9r5OadCa1L4HB91aQeD80
@@ -70,7 +70,7 @@ class FunctionController extends BaseController
 		{
 			$resource = strtoupper($arrQueryUri[3]);
 			
-			if ($resource == 'AUTH')
+			if ($resource == 'AUTH') // REIMPLEMENT TO ALLOW SPECIFIC USERS API ACCESS (LIKELY oar_api user) INSTEAD OF TOKEN AUTHORIZATION
 			{
 				$this->auth(); // "/genapi.php/auth/" Endpoint
 			}
@@ -110,7 +110,6 @@ class FunctionController extends BaseController
 			}
 		}
 	}
-
 
 	/**
 	 * Auth resource endpoints
@@ -233,7 +232,7 @@ class FunctionController extends BaseController
 				}
 				$this->createDir($dir);
 			}
-			elseif ($arrQueryUri[4] == 'sharediruser') // "/genapi.php/files/sharediruser/{user}/{permissions}/{directory}" Endpoint - share directory with user with permissions
+			elseif ($arrQueryUri[4] == 'shareuser') // "/genapi.php/files/shareuser/{user}/{permissions}/{directory}" Endpoint - share directory with user with permissions
 			{
 				$user = $arrQueryUri[5];
 				$perm = $arrQueryUri[6];
@@ -242,9 +241,9 @@ class FunctionController extends BaseController
 				{
 					$dir .= "/" . $arrQueryUri[$i];
 				}
-				$this->shareDirUser($user, $perm, $dir);
+				$this->shareUser($user, $perm, $dir);
 			}
-			elseif ($arrQueryUri[4] == 'sharedirgroup') // "/genapi.php/files/sharedirgroup/{group}/{permissions}/{directory}" Endpoint - share directory with group with permissions
+			elseif ($arrQueryUri[4] == 'sharegroup') // "/genapi.php/files/sharegroup/{group}/{permissions}/{directory}" Endpoint - share directory with group with permissions
 			{
 				$group = $arrQueryUri[5];
 				$perm = $arrQueryUri[6];
@@ -253,7 +252,7 @@ class FunctionController extends BaseController
 				{
 					$dir .= "/" . $arrQueryUri[$i];
 				}
-				$this->shareDirGroup($group, $perm, $dir);
+				$this->shareGroup($group, $perm, $dir);
 			}
 		}
 		elseif ($requestMethod == 'PUT') // PUT method
@@ -276,6 +275,46 @@ class FunctionController extends BaseController
 	}
 
 	/**
+	 * "-X POST /files/putfile/{file path}" Endpoint - uploads file TODO
+	 */
+	private function putFile($file)
+	{
+
+	}
+
+	/**
+	 * "-X DELETE /files/deletefile/{file path}" Endpoint - deletes file TODO
+	 */
+	private function deleteFile($file)
+	{
+
+	}
+
+	/**
+	 * -X PUT /files/movefile/{file path}" Endpoint - moves file TODO
+	 */
+	private function moveFile($file, $dest)
+	{
+
+	}
+
+	/**
+	 * -X PUT /files/copyfile/{file path}" Endpoint - copy file TODO
+	 */
+	private function copyFile($file, $dest)
+	{
+		
+	}
+
+	/**
+	 * "-X GET /files/getfile/{file path}" Endpoint - gets file TODO
+	 */
+	private function getFile($file)
+	{
+
+	}
+
+	/**
 	 * "-X POST /files/createdir/{directory name}" Endpoint - creates directory
 	 */
 	private function createDir($dir)
@@ -287,6 +326,14 @@ class FunctionController extends BaseController
 
 			$this->sendOkayOutput($responseData);
 		}
+	}
+
+	/**
+	 * "-X DELETE /files/deletedir/{directory name}" Endpoint - deletes directory TODO
+	 */
+	private function deleteDir($dir)
+	{
+
 	}
 
 	/**
@@ -318,9 +365,9 @@ class FunctionController extends BaseController
 	}
 
 	/**
-	 * "-X POST /files/sharediruser/{user}/{permissions}/{directory}" Endpoint - share directory with user with permissions
+	 * "-X POST /files/shareuser/{user}/{permissions}/{directory}" Endpoint - share file/folder with user with permissions
 	 */
-	private function shareDirUser($user, $perm, $dir)
+	private function shareUser($user, $perm, $dir)
 	{
 		$command = "curl -X POST -H \"ocs-apirequest:true\" -k -u " . self::$usr . " \"https://localhost/ocs/v2.php/apps/files_sharing/api/v1/shares?shareType=0" . "&path=" . $dir . "&shareWith=" . $user . "&permissions=" . $perm . "\"";
 		if (exec($command, $arrUser))
@@ -332,9 +379,9 @@ class FunctionController extends BaseController
 	}
 
 	/**
-	 * "-X POST /files/sharedirgroup/{group}/{permissions}/{directory}" Endpoing - share directory with group with permissions
+	 * "-X POST /files/sharegroup/{group}/{permissions}/{directory}" Endpoing - share file/folder with group with permissions
 	 */
-	private function shareDirGroup($group, $perm, $dir)
+	private function shareGroup($group, $perm, $dir)
 	{
 		$command = "curl -X POST -H \"ocs-apirequest:true\" -k -u " . self::$usr . " \"https://localhost/ocs/v2.php/apps/files_sharing/api/v1/shares?shareType=1" . "&path=" . $dir . "&shareWith=" . $group . "&permissions=" . $perm . "\"";
 		if (exec($command, $arrUser))
