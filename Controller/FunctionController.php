@@ -282,6 +282,8 @@ class FunctionController extends BaseController
 
 	}
 
+	//new code
+
 	/**
 	 * "-X DELETE /files/deletefile/{file path}" Endpoint - deletes file TODO
 	 */
