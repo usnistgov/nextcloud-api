@@ -1,4 +1,8 @@
 <?php
+
+namespace NamespaceBase;
+
+
 class BaseController
 {
 	/**
@@ -37,7 +41,8 @@ class BaseController
 	 */
 	protected function getQueryStringParams()
 	{
-		return parse_str($_SERVER['QUERY_STRING'], $query);
+		parse_str($_SERVER['QUERY_STRING'], $query);
+		return $query;
 	}
 
 	/**
@@ -56,19 +61,20 @@ class BaseController
 	 * @param mixed  $data
 	 * @param string $httpHeader
 	 */
-	protected function sendOutput($data, $httpHeaders=array())
+	protected function sendOutput($data, $httpHeaders = array())
 	{
 		header_remove('Set-Cookie');
 
-		if (is_array($httpHeaders) && count($httpHeaders))
-		{
-			foreach ($httpHeaders as $httpHeader)
-			{
+		if (is_array($httpHeaders) && count($httpHeaders)) {
+			foreach ($httpHeaders as $httpHeader) {
 				header($httpHeader);
 			}
 		}
 
-		echo $data;
+		//echo $data;
+
+		return $data;
+
 		exit;
 	}
 
@@ -104,7 +110,7 @@ class BaseController
 	 * @param string $strErrorDesc
 	 * @param string $strErrorHeader
 	 */
-	protected function sendErrorOutput($strErrorDesc, $StrErrorHeader)
+	protected function sendErrorOutput($strErrorDesc, $strErrorHeader)
 	{
 		$this->sendOutput(
 			json_encode(array('error' => $strErrorDesc)),
@@ -169,11 +175,9 @@ class BaseController
 	protected function endsWith($haystack, $needle)
 	{
 		$length = strlen($needle);
-		if (!length)
-		{
+		if (!$length) {
 			return true;
 		}
 		return substr($haystack, -$length) === $needle;
 	}
 }
-?>
