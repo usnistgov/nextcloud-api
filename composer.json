@@ -1,5 +1,10 @@
 {
     "require": {
         "firebase/php-jwt": "^6.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.5",
+        "php-mock/php-mock-phpunit": "^2.7",
+        "mockery/mockery": "^1.4"
     }
 }

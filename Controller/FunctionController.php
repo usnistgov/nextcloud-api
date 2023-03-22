@@ -1,9 +1,15 @@
 <?php
 
+namespace NamespaceFunction;
+
+require_once('BaseController.php');
+
 use \Firebase\JWT\JWT; // LIKELY TO BE DELETED
 use \Firebase\JWT\Key; // LIKELY TO BE DLEETED
 
-class FunctionController extends BaseController
+use mysqli;
+
+class FunctionController extends \NamespaceBase\BaseController
 {
 	/**
 	 * Expected API endpoint:
@@ -325,8 +331,9 @@ class FunctionController extends BaseController
 		if (exec($command, $arrUser))
 		{
 			$responseData = json_encode($arrUser);
-
 			$this->sendOkayOutput($responseData);
+
+			return $responseData;
 		}
 	}
 
@@ -347,8 +354,9 @@ class FunctionController extends BaseController
 		if (exec($command, $arrUser))
 		{
 			$responseData = json_encode($arrUser);
-
 			$this->sendOkayOutput($responseData);
+
+			return $responseData;
 		}
 	}
 
@@ -358,11 +366,14 @@ class FunctionController extends BaseController
 	private function scanUserFiles($user)
 	{
 		$command = self::$occ . ' files:scan ' . $user;
+		
 		if (exec($command, $arrUser))
-		{
-			$responseData = json_encode($arrUser);
+		{				
 
+			$responseData = json_encode($arrUser);
 			$this->sendOkayOutput($responseData);
+
+			return $responseData;
 		}
 	}
 
@@ -375,8 +386,9 @@ class FunctionController extends BaseController
 		if (exec($command, $arrUser))
 		{
 			$responseData = json_encode($arrUser);
-
 			$this->sendOkayOutput($responseData);
+
+			return $responseData;
 		}
 	}
 
@@ -389,8 +401,9 @@ class FunctionController extends BaseController
 		if (exec($command, $arrUser))
 		{
 			$responseData = json_encode($arrUser);
-
 			$this->sendOkayOutput($responseData);
+
+			return $responseData;
 		}
 	}
 
@@ -465,6 +478,7 @@ class FunctionController extends BaseController
 		if (exec($command, $arrUser))
 		{
 			$this->sendOkayOutput($arrUser[0]);
+			return $arrUser[0];
 		}
 	}
 
@@ -477,6 +491,7 @@ class FunctionController extends BaseController
 		if (exec($command, $arrUser))
 		{
 			$this->sendOkayOutput($arrUser[0]);
+			return $arrUser[0];
 		}
 	}
 
@@ -489,8 +504,8 @@ class FunctionController extends BaseController
 		if (exec($command, $arrUser))
 		{
 			$responseData = json_encode($arrUser);
-
 			$this->sendOkayOutput($responseData);
+			return $responseData;
 		}
 	}
 
@@ -505,6 +520,7 @@ class FunctionController extends BaseController
 			$responseData = json_encode($arrUser);
 
 			$this->sendOkayOutput($responseData);
+			return $responseData;
 		}
 	}
 
@@ -591,7 +607,7 @@ class FunctionController extends BaseController
 		}
 		elseif ($requestMethod == 'POST')
 		{
-			if (cound($arrQueryUri) == 5) // "/genapi.php/groups/{group name}" Endpoing - creates group
+			if (count($arrQueryUri) == 5) // "/genapi.php/groups/{group name}" Endpoing - creates group
 			{
 				$this->addGroup($arrQueryUri[4]);
 			}
@@ -669,8 +685,9 @@ class FunctionController extends BaseController
 		if (exec($command, $arrGroup))
 		{
 			$responseData = json_encode($this->parseGroups($arrGroup));
-
 			$this->sendOkayOutput($responseData);
+
+			return $responseData;
 		}
 	}
 
@@ -685,6 +702,7 @@ class FunctionController extends BaseController
 			$responseData = json_encode(($this->parseGroups($arrGroup))[$group]);
 
 			$this->sendOkayOutput($responseData);
+			return $responseData;
 		}
 	}
 
@@ -699,6 +717,7 @@ class FunctionController extends BaseController
 			$responseData = json_encode($arrGroup);
 
 			$this->sendCreatedOutput($responseData);
+			return $responseData;
 		}
 	}
 
@@ -713,6 +732,7 @@ class FunctionController extends BaseController
 			$responseData = json_encode($arrGroup);
 
 			$this->sendCreatedOutput($responseData);
+			return $responseData;
 		}
 	}
 
@@ -727,6 +747,7 @@ class FunctionController extends BaseController
 			$responseData = json_encode($arrGroup);
 
 			$this->sendOkayOutput($responseData);
+			return $responseData;
 		}
 	}
 
@@ -741,6 +762,7 @@ class FunctionController extends BaseController
 			$responseData = json_encode($arrGroup);
 
 			$this->sendOkayOutput($responseData);
+			return $responseData;
 		}
 	}
 	
@@ -970,6 +992,7 @@ class FunctionController extends BaseController
 			$responseData = json_encode($this->parseExtStorages($arrExtStorage));
 
 			$this->sendOkayOutput($responseData);
+			return $responseData;
 		}
 	}
 
@@ -984,6 +1007,8 @@ class FunctionController extends BaseController
 			$responseData = json_encode(($this->parseExtStorages($arrExtStorage))[$storageId]);
 
 			$this->sendOkayOutput($responseData);
+
+			return $responseData;
 		}
 	}
 
@@ -998,6 +1023,7 @@ class FunctionController extends BaseController
 			$responseData = json_encode($arrExtStorage);
 
 			$this->sendCreatedOutput($responseData);
+			return $responseData;
 		}
 	}
 
@@ -1012,6 +1038,7 @@ class FunctionController extends BaseController
 			$responseData = json_encode($arrExtStorage);
 
 			$this->sendCreatedOutput($responseData);
+			return $responseData;
 		}
 	}
 
@@ -1026,6 +1053,7 @@ class FunctionController extends BaseController
 			$responseData = json_encode($arrExtStorage);
 
 			$this->sendOkayOutput($responseData);
+			return $responseData;
 		}
 	}
 
@@ -1040,6 +1068,7 @@ class FunctionController extends BaseController
 			$responseData = json_encode($arrExtStorage);
 
 			$this->sendOkayOutput($responseData);
+			return $responseData;
 		}
 	}
 
@@ -1054,6 +1083,7 @@ class FunctionController extends BaseController
 			$responseData = json_encode($arrExtStorage);
 
 			$this->sendOkayOutput($responseData);
+			return $responseData;
 		}
 	}
 
@@ -1068,6 +1098,7 @@ class FunctionController extends BaseController
 			$responseData = json_encode($arrExtStorage);
 
 			$this->sendOkayOutput($responseData);
+			return $responseData;
 		}
 	}
 
@@ -1082,6 +1113,7 @@ class FunctionController extends BaseController
 			$responseData = json_encode($arrExtStorage);
 
 			$this->sendOkayOutput($responseData);
+			return $responseData;
 		}
 	}
 	
@@ -1096,6 +1128,7 @@ class FunctionController extends BaseController
 			$responseData = json_encode($arrExtStorage);
 
 			$this->sendOkayOutput($responseData);
+			return $responseData;
 		}
 	}
 
@@ -1110,6 +1143,7 @@ class FunctionController extends BaseController
 			$responseData = json_encode($arrExtStorage);
 
 			$this->sendOkayOutput($responseData);
+			return $responseData;
 		}
 	}
 
@@ -1127,6 +1161,8 @@ class FunctionController extends BaseController
 		$headers = apache_request_headers();
 
 		$this->sendOkayOutput(json_encode($headers));
+
+		return $headers;
 	}
 
 	/**
@@ -1154,4 +1190,3 @@ class FunctionController extends BaseController
 		}
 	}
 }
-?>
