@@ -71,7 +71,7 @@ class BaseController
 			}
 		}
 
-		//echo $data;
+		echo $data;
 
 		return $data;
 
