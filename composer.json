@@ -1,6 +1,6 @@
 {
     "require": {
-        "php": "8.2.5",
+        "php": ">=8.2.5",
         "firebase/php-jwt": "^6.0"
     },
     "require-dev": {
