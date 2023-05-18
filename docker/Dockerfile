@@ -4,7 +4,7 @@ FROM php:8.2.5-apache
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
 # Copy API into the image
-COPY . /var/www/html/
+COPY ../ /var/www/html/
 
 # Install dependencies
 RUN composer install
