@@ -30,14 +30,23 @@ class FunctionController extends \NamespaceBase\BaseController
 	 */
 	private static $occ = 'php /var/www/nextcloud/occ';
 
-	// passthrough credentials
-	private static $usr = '';
+    // passthrough credentials
+    private $usr;
 
-	// db credentials
-	private static $dbhost = '';
-	private static $dbuser = '';
-	private static $dbpass = '';
-	private static $dbname = '';
+    // db credentials
+    private $dbhost;
+    private $dbuser;
+    private $dbpass;
+    private $dbname;
+
+    public function __construct() {
+        $config = require '/config/config.php';
+        $this->usr = $config['user_pass'];
+        $this->dbhost = $config['db_host'];
+        $this->dbuser = $config['db_user'];
+        $this->dbpass = $config['db_pass'];
+        $this->dbname = $config['db_name'];
+    }
 
 	// JWT key, LIKELY TO BE DELETED
 	private static $privateKey = <<<EOD
@@ -75,7 +84,7 @@ class FunctionController extends \NamespaceBase\BaseController
 		else
 		{
 			$resource = strtoupper($arrQueryUri[3]);
-			
+
 			if ($resource == 'AUTH') // REIMPLEMENT TO ALLOW SPECIFIC USERS API ACCESS (LIKELY oar_api user) INSTEAD OF TOKEN AUTHORIZATION
 			{
 				$this->auth(); // "/genapi.php/auth/" Endpoint
@@ -111,7 +120,7 @@ class FunctionController extends \NamespaceBase\BaseController
 			else //Unavailable/unsupported resource
 			{
 				$strErrorDesc = $resource . ' is not an available resource';
-				
+
 				$this->SendError404Output($strErrorDesc);
 			}
 		}
@@ -123,7 +132,7 @@ class FunctionController extends \NamespaceBase\BaseController
 	private function auth()
 	{
 		$strErrorDesc = '';
-		
+
 		$requestMethod = $this->getRequestMethod();
 		$arrQueryUri = $this->getUriSegments();
 
@@ -136,14 +145,14 @@ class FunctionController extends \NamespaceBase\BaseController
 			else
 			{
 				$strErrorDesc = $requestMethod . ' ' . $this->getUri() . ' is not an available Method and Endpoint';
-				
+
 				$this->sendError404Output($strErrorDesc);
 			}
 		}
 		else // unsupported method
 		{
 			$strErrorDesc = $requestMethod . ' is not an available request Method';
-			
+
 			$this->sendError405Output($strErrorDesc);
 		}
 	}
@@ -167,7 +176,7 @@ class FunctionController extends \NamespaceBase\BaseController
 			'token' => $jwt,
 			'expires' => $exp
 		));
-		
+
 		$this->sendOkayOutput($responseData);
 	}
 
@@ -185,7 +194,7 @@ class FunctionController extends \NamespaceBase\BaseController
 		$headers = apache_request_headers();
 		$token = str_replace('Bearer ', '', $headers['Authorization']);
 
-		try 
+		try
 		{
 			//$payload = JWT::decode($token, new Key(self::$key, 'HS256'));
 			$payload = JWT::decode($token, new Key(self::$privateKey, 'HS256'));
@@ -195,7 +204,7 @@ class FunctionController extends \NamespaceBase\BaseController
 
 			array_unshift($arrQueryUri, $requestMethod);
 			$responseData = json_encode($arrQueryUri);
-			
+
 			// send output
 			if (!$strErrorDesc)
 			{
@@ -223,7 +232,7 @@ class FunctionController extends \NamespaceBase\BaseController
 	private function files()
 	{
 		$strErrorDesc = '';
-		
+
 		$requestMethod = $this->getRequestMethod();
 		$arrQueryUri = $this->getUriSegments();
 
@@ -275,7 +284,7 @@ class FunctionController extends \NamespaceBase\BaseController
 		else // unsupported method
 		{
 			$strErrorDesc = $requestMethod . ' is not an available request Method';
-			
+
 			$this->sendError405Output($strErrorDesc);
 		}
 	}
@@ -311,7 +320,7 @@ class FunctionController extends \NamespaceBase\BaseController
 	 */
 	private function copyFile($file, $dest)
 	{
-		
+
 	}
 
 	/**
@@ -327,7 +336,7 @@ class FunctionController extends \NamespaceBase\BaseController
 	 */
 	private function createDir($dir)
 	{
-		$command = "curl -X MKCOL -k -u " . self::$usr . " https://localhost/remote.php/dav/files/oar_api/" . $dir;
+		$command = "curl -X MKCOL -k -u " . $this->usr . " https://localhost/remote.php/dav/files/oar_api/" . $dir;
 		if (exec($command, $arrUser))
 		{
 			$responseData = json_encode($arrUser);
@@ -366,9 +375,9 @@ class FunctionController extends \NamespaceBase\BaseController
 	private function scanUserFiles($user)
 	{
 		$command = self::$occ . ' files:scan ' . $user;
-		
+
 		if (exec($command, $arrUser))
-		{				
+		{
 
 			$responseData = json_encode($arrUser);
 			$this->sendOkayOutput($responseData);
@@ -382,7 +391,7 @@ class FunctionController extends \NamespaceBase\BaseController
 	 */
 	private function shareUser($user, $perm, $dir)
 	{
-		$command = "curl -X POST -H \"ocs-apirequest:true\" -k -u " . self::$usr . " \"https://localhost/ocs/v2.php/apps/files_sharing/api/v1/shares?shareType=0" . "&path=" . $dir . "&shareWith=" . $user . "&permissions=" . $perm . "\"";
+		$command = "curl -X POST -H \"ocs-apirequest:true\" -k -u " . $this->usr . " \"https://localhost/ocs/v2.php/apps/files_sharing/api/v1/shares?shareType=0" . "&path=" . $dir . "&shareWith=" . $user . "&permissions=" . $perm . "\"";
 		if (exec($command, $arrUser))
 		{
 			$responseData = json_encode($arrUser);
@@ -397,7 +406,7 @@ class FunctionController extends \NamespaceBase\BaseController
 	 */
 	private function shareGroup($group, $perm, $dir)
 	{
-		$command = "curl -X POST -H \"ocs-apirequest:true\" -k -u " . self::$usr . " \"https://localhost/ocs/v2.php/apps/files_sharing/api/v1/shares?shareType=1" . "&path=" . $dir . "&shareWith=" . $group . "&permissions=" . $perm . "\"";
+		$command = "curl -X POST -H \"ocs-apirequest:true\" -k -u " . $this->usr . " \"https://localhost/ocs/v2.php/apps/files_sharing/api/v1/shares?shareType=1" . "&path=" . $dir . "&shareWith=" . $group . "&permissions=" . $perm . "\"";
 		if (exec($command, $arrUser))
 		{
 			$responseData = json_encode($arrUser);
@@ -419,7 +428,7 @@ class FunctionController extends \NamespaceBase\BaseController
 	private function users()
 	{
 		$strErrorDesc = '';
-		
+
 		$requestMethod = $this->getRequestMethod();
 		$arrQueryUri = $this->getUriSegments();
 
@@ -436,7 +445,7 @@ class FunctionController extends \NamespaceBase\BaseController
 			else
 			{
 				$strErrorDesc = $requestMethod . ' ' . $this->getUri() . ' is not an available Method and Endpoint';
-				
+
 				$this->sendError404Output($strErrorDesc);
 			}
 		}
@@ -464,7 +473,7 @@ class FunctionController extends \NamespaceBase\BaseController
 		else // unsupported method
 		{
 			$strErrorDesc = $requestMethod . ' is not an available request Method';
-			
+
 			$this->sendError405Output($strErrorDesc);
 		}
 	}
@@ -530,7 +539,7 @@ class FunctionController extends \NamespaceBase\BaseController
 	private function createUser($user)
 	{
 		// create connection
-		$db = new mysqli(self::$dbhost, self::$dbuser, self::$dbpass, self::$dbname);
+		$db = new mysqli($this->dbhost, $this->dbuser, $this->dbpass, $this->dbname);
 		// check connection
 		if ($db->connect_error)
 		{
