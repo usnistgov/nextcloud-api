@@ -278,7 +278,7 @@ class FunctionController extends \NamespaceBase\BaseController
 			}
 			elseif (count($arrQueryUri) == 6) // "/genapi.php/files/scan/{user}" Endpoint - scan user's file system
 			{
-				$this->scanUserFiles($arrQueryUri[4]);
+				$this->scanUserFiles($arrQueryUri[5]);
 			}
 		}
 		else // unsupported method
