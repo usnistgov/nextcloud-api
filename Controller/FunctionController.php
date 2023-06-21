@@ -25,7 +25,7 @@ class FunctionController extends \NamespaceBase\BaseController
     /**
      * Path to occ command
      */
-    private static $occ = "php /var/www/nextcloud/occ";
+    private static $occ = "php /var/www/html/occ";
 
     // service credentials
     private static $oar_api_login = "";
