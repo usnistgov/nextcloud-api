@@ -43,9 +43,9 @@ class FunctionController extends \NamespaceBase\BaseController
         $config = require "/config/config.php";
         self::$oar_api_login = $config["user_pass"];
         self::$dbhost = $config["db_host"];
-        self::$dbuser = $config["db_user"];
-        self::$dbpass = $config["db_pass"];
-        self::$dbname = $config["db_name"];
+        self::$dbuser = $config["mariadb_user"];
+        self::$dbpass = $config["mariadb_password"];
+        self::$dbname = $config["mariadb_database"];
         list(self::$oar_api_usr, self::$oar_api_pwd) = explode(
             ":",
             self::$oar_api_login
