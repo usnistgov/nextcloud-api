@@ -40,7 +40,12 @@ class FunctionController extends \NamespaceBase\BaseController
 
     public function __construct()
     {
-        $config = require "/config/config.php";
+        $configFilePath = '/config/config.php';
+        if (!file_exists($configFilePath)) {
+            throw new \RuntimeException("Config file not found: {$configFilePath}");
+        }
+        $config = require $configFilePath;
+
         self::$oar_api_login = $config["user_pass"];
         self::$dbhost = $config["db_host"];
         self::$dbuser = $config["mariadb_user"];
@@ -50,6 +55,11 @@ class FunctionController extends \NamespaceBase\BaseController
             ":",
             self::$oar_api_login
         );
+    }
+
+    public function getOarApiLogin()
+    {
+        return self::$oar_api_login;
     }
 
     /**
@@ -135,22 +145,22 @@ class FunctionController extends \NamespaceBase\BaseController
 
         if ($requestMethod == "POST") {
             // POST method
-            if ($arrQueryUri[4] == "createdir") {
-                // "/genapi.php/files/createdir/{directory name}" Endpoint - creates directory
+            if ($arrQueryUri[4] == "directory") {
+                // "/genapi.php/files/directory/{directory name}" Endpoint - creates directory
                 $dir = $arrQueryUri[5];
                 for ($i = 6; $i < count($arrQueryUri); $i++) {
                     $dir .= "/" . $arrQueryUri[$i];
                 }
-                $this->createDir($dir);
-            } elseif ($arrQueryUri[4] == "shareuser") {
-                // "/genapi.php/files/shareuser/{user}/{permissions}/{directory}" Endpoint - share directory with user with permissions
+                $this->postDirectory($dir);
+            } elseif ($arrQueryUri[4] == "userpermissions") {
+                // "/genapi.php/files/userpermissions/{user}/{permissions}/{directory}" Endpoint - share directory with user with permissions
                 $user = $arrQueryUri[5];
                 $perm = $arrQueryUri[6];
                 $dir = $arrQueryUri[7];
                 for ($i = 8; $i < count($arrQueryUri); $i++) {
                     $dir .= "/" . $arrQueryUri[$i];
                 }
-                $this->shareUser($user, $perm, $dir);
+                $this->postUserPermissions($user, $perm, $dir);
             } elseif ($arrQueryUri[4] == "sharegroup") {
                 // "/genapi.php/files/sharegroup/{group}/{permissions}/{directory}" Endpoint - share directory with group with permissions
                 $group = $arrQueryUri[5];
@@ -163,16 +173,59 @@ class FunctionController extends \NamespaceBase\BaseController
             }
         } elseif ($requestMethod == "PUT") {
             // PUT method
-            if (count($arrQueryUri) == 5) {
+            if ($arrQueryUri[4] == "userpermissions") {
+                // "/genapi.php/files/userpermissions/{user}/{permissions}/{directory}" Endpoint - Modify user permissions on directory
+                $user = $arrQueryUri[5];
+                $perm = $arrQueryUri[6];
+                $dir = $arrQueryUri[7];
+                for ($i = 8; $i < count($arrQueryUri); $i++) {
+                    $dir .= "/" . $arrQueryUri[$i];
+                }
+                $this->putUserPermissions($user, $perm, $dir);
+            } elseif (count($arrQueryUri) == 5) {
                 // "/genapi.php/files/scan" Endpoint - scans all file systems
                 $this->scanAllFiles();
             } elseif (count($arrQueryUri) == 6) {
                 // "/genapi.php/files/scan/{user}" Endpoint - scan user's file system
                 $this->scanUserFiles($arrQueryUri[5]);
             }
-        }
-        // unsupported method
-        else {
+        } elseif ($requestMethod == "GET") {
+            // GET method
+            if ($arrQueryUri[4] == "directory") {
+                // "/genapi.php/files/directory/{directory name}" Endpoint - get directory info
+                $dir = $arrQueryUri[5];
+                for ($i = 6; $i < count($arrQueryUri); $i++) {
+                    $dir .= "/" . $arrQueryUri[$i];
+                }
+                $this->getDirectory($dir);
+            } elseif ($arrQueryUri[4] == "userpermissions") {
+                // "/genapi.php/files/userpermissions/{directory}" Endpoint - Get users with permissions to directory
+                $dir = $arrQueryUri[5];
+                for ($i = 6; $i < count($arrQueryUri); $i++) {
+                    $dir .= "/" . $arrQueryUri[$i];
+                }
+                $this->getUserPermissions($dir);
+            }
+        } elseif ($requestMethod == "DELETE") {
+            // DELETE method
+            if ($arrQueryUri[4] == "directory") {
+                // "/genapi.php/files/directory/{directory name}" Endpoint - delete directory
+                $dir = $arrQueryUri[5];
+                for ($i = 6; $i < count($arrQueryUri); $i++) {
+                    $dir .= "/" . $arrQueryUri[$i];
+                }
+                $this->deleteDirectory($dir);
+            } elseif ($arrQueryUri[4] == "userpermissions") {
+                // "/genapi.php/files/userpermissions/{user}/{directory}" Endpoint - Remove all user permissions to directory
+                $user = $arrQueryUri[5];
+                $dir = $arrQueryUri[6];
+                for ($i = 7; $i < count($arrQueryUri); $i++) {
+                    $dir .= "/" . $arrQueryUri[$i];
+                }
+                $this->deleteUserPermissions($user, $dir);
+            }
+            // unsupported method
+        } else {
             $strErrorDesc =
                 $requestMethod . " is not an available request Method";
 
@@ -216,9 +269,9 @@ class FunctionController extends \NamespaceBase\BaseController
     }
 
     /**
-     * "-X POST /files/createdir/{directory name}" Endpoint - creates directory
+     * "-X POST /files/directory/{directory name}" Endpoint - creates directory
      */
-    private function createDir($dir)
+    private function postDirectory($dir)
     {
         $command =
             "curl -X MKCOL -k -u " .
@@ -234,10 +287,41 @@ class FunctionController extends \NamespaceBase\BaseController
     }
 
     /**
-     * "-X DELETE /files/deletedir/{directory name}" Endpoint - deletes directory TODO
+     * "-X GET /files/directory/{directory name}" Endpoint - get directory info
      */
-    private function deleteDir($dir)
+    #TODO
+    private function getDirectory($dir)
     {
+        $command =
+            "curl -X PROPFIND -k -u " .
+            self::$oar_api_login .
+            " -H \"Depth: 0\" https://localhost/remote.php/dav/files/oar_api/" .
+            $dir;
+        if (exec($command, $arrUser)) {
+            $responseData = json_encode($arrUser);
+            $this->sendOkayOutput($responseData);
+
+            return $responseData;
+        }
+    }
+
+    /**
+     * "-X DELETE /files/directory/{directory name}" Endpoint - deletes directory
+     */
+    #TODO
+    private function deleteDirectory($dir)
+    {
+        $command =
+            "curl -X DELETE -k -u " .
+            self::$oar_api_login .
+            " https://localhost/remote.php/dav/files/oar_api/" .
+            $dir;
+        if (exec($command, $arrUser)) {
+            $responseData = json_encode($arrUser);
+            $this->sendOkayOutput($responseData);
+
+            return $responseData;
+        }
     }
 
     /**
@@ -270,9 +354,9 @@ class FunctionController extends \NamespaceBase\BaseController
     }
 
     /**
-     * "-X POST /files/shareuser/{user}/{permissions}/{directory}" Endpoint - share file/folder with user with permissions
+     * "-X POST /files/userpermissions/{user}/{permissions}/{directory}" Endpoint - share file/folder with user with permissions
      */
-    private function shareUser($user, $perm, $dir)
+    private function postUserPermissions($user, $perm, $dir)
     {
         $command =
             "curl -X POST -H \"ocs-apirequest:true\" -k -u " .
@@ -292,6 +376,103 @@ class FunctionController extends \NamespaceBase\BaseController
             return $responseData;
         }
     }
+
+    /**
+     * "-X GET /files/userpermissions/{directory}" Endpoint - get users with permissions to file/folder
+     */
+    private function getUserPermissions($dir)
+    {
+        $command =
+            "curl -X GET -H \"OCS-APIRequest: true\" -k -u " .
+            self::$oar_api_login .
+            " 'https://localhost/ocs/v2.php/apps/files_sharing/api/v1/shares?path=/" .
+            $dir .
+            "&reshares=true'";
+
+        $arrResult = [];
+
+        if (exec($command, $arrResult)) {
+            $responseData = json_encode($arrResult);
+            $this->sendOkayOutput($responseData);
+            return $responseData;
+        }
+
+        $responseData = json_encode($arrResult);
+        $this->sendError404Output($responseData);
+
+        return $responseData;
+    }
+
+    /**
+     * "-X PUT /files/userpermissions/{user}/{permissions}/{directory}" Endpoint - Modify user permissions to directory
+     */
+    #TODO
+    private function putUserPermissions($user, $perm, $dir)
+    {
+        // Delete existing permissions
+        $deleteResult = $this->deleteUserPermissions($user, $dir);
+
+        // If the deletion was successful, add new permissions
+        $deleteResultData = json_decode($deleteResult, true);
+
+        if (!array_key_exists('error', $deleteResultData)) {
+            return $this->postUserPermissions($user, $perm, $dir);
+        }
+
+        // If there was an issue with the deletion
+        return $deleteResult;
+    }
+
+    /**
+     * "-X DELETE /files/userpermissions/{user}/{directory}" Endpoint - Delete user permissions to directory
+     */
+    private function deleteUserPermissions($user, $dir)
+    {
+        // list of all shares on a specific directory to retrieve shareID
+        $command =
+            "curl -X GET -H \"OCS-APIRequest: true\" -k -u " .
+            self::$oar_api_login .
+            " 'https://localhost/ocs/v2.php/apps/files_sharing/api/v1/shares?path=/" .
+            $dir .
+            "&reshares=true'";
+
+        $arrResult = [];
+
+        if (exec($command, $arrResult)) {
+            $data = implode("\n", $arrResult);
+            $pattern = '/<id>(.*?)<\/id>/';
+
+            if (preg_match_all($pattern, $data, $matches)) {
+                $shareId = $matches[1][0];
+            }
+
+            if (!empty($shareId)) {
+                // Delete the share
+                $deleteCommand =
+                    "curl -X DELETE -H \"OCS-APIRequest: true\" -k -u " .
+                    self::$oar_api_login .
+                    " 'https://localhost/ocs/v2.php/apps/files_sharing/api/v1/shares/" .
+                    $shareId .
+                    "'";
+
+                // Execute delete command
+                $arrDeleteResult = [];
+                if (exec($deleteCommand, $arrDeleteResult)) {
+                    $responseData = json_encode($arrDeleteResult);
+                    $this->sendOkayOutput($responseData);
+
+                    return $responseData;
+                }
+            }
+        }
+
+        $responseData = json_encode($arrResult);
+        $this->sendError404Output($responseData);
+
+        return $responseData;
+    }
+
+
 
     /**
      * "-X POST /files/sharegroup/{group}/{permissions}/{directory}" Endpoing - share file/folder with group with permissions
@@ -861,9 +1042,7 @@ class FunctionController extends \NamespaceBase\BaseController
                         $rowArr = explode(", ", $row[$i]);
                         foreach ($rowArr as $rowEle) {
                             $keyValue = explode(": ", $rowEle, 2);
-                            $parsedExtStorages[$row[0]][$headers[$i]][
-                                $keyValue[0]
-                            ] = $keyValue[1];
+                            $parsedExtStorages[$row[0]][$headers[$i]][$keyValue[0]] = $keyValue[1];
                         }
                     }
                 } else {
