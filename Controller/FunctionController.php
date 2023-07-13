@@ -440,28 +440,32 @@ class FunctionController extends \NamespaceBase\BaseController
 
         if (exec($command, $arrResult)) {
             $data = implode("\n", $arrResult);
-            $pattern = '/<id>(.*?)<\/id>/';
+            $idPattern = '/<id>(.*?)<\/id>/';
+            $userPattern = '/<share_with>(.*?)<\/share_with>/';
 
-            if (preg_match_all($pattern, $data, $matches)) {
-                $shareId = $matches[1][0];
-            }
+            if (preg_match_all($idPattern, $data, $idMatches) && preg_match_all($userPattern, $data, $userMatches)) {
+                $shareIds = $idMatches[1];
+                $shareUsers = $userMatches[1];
+    
+                foreach ($shareIds as $index => $shareId) {
+                    if (isset($shareUsers[$index]) && $shareUsers[$index] == $user) {
+                        // Delete the share
+                        $deleteCommand =
+                            "curl -X DELETE -H \"OCS-APIRequest: true\" -k -u " .
+                            self::$oar_api_login .
+                            " 'https://localhost/ocs/v2.php/apps/files_sharing/api/v1/shares/" .
+                            $shareId .
+                            "'";
 
-            if (!empty($shareId)) {
-                // Delete the share
-                $deleteCommand =
-                    "curl -X DELETE -H \"OCS-APIRequest: true\" -k -u " .
-                    self::$oar_api_login .
-                    " 'https://localhost/ocs/v2.php/apps/files_sharing/api/v1/shares/" .
-                    $shareId .
-                    "'";
+                        // Execute delete command
+                        $arrDeleteResult = [];
+                        if (exec($deleteCommand, $arrDeleteResult)) {
+                            $responseData = json_encode($arrDeleteResult);
+                            $this->sendOkayOutput($responseData);
 
-                // Execute delete command
-                $arrDeleteResult = [];
-                if (exec($deleteCommand, $arrDeleteResult)) {
-                    $responseData = json_encode($arrDeleteResult);
-                    $this->sendOkayOutput($responseData);
-
-                    return $responseData;
+                            return $responseData;
+                        }
+                    }
                 }
             }
         }
@@ -471,8 +475,6 @@ class FunctionController extends \NamespaceBase\BaseController
 
         return $responseData;
     }
-
-
 
     /**
      * "-X POST /files/sharegroup/{group}/{permissions}/{directory}" Endpoing - share file/folder with group with permissions
