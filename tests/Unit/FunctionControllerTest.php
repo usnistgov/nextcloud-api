@@ -17,10 +17,15 @@ class FunctionControllerTest extends TestCase {
     private $api;
     private $returnValue;
     private $arrExtStorage;
+    private $commands;
+    private $returnValues;
 
     public function setUp(): void {
-        $this->api = new FunctionController();
- 
+        // create a mock for the FunctionController
+        $this->api = $this->getMockBuilder(FunctionController::class)
+                          ->disableOriginalConstructor()
+                          ->setMethods(null) // Set the methods you want to mock, null for a partial mock
+                          ->getMock();
     }
 
     public function tearDown(): void {
@@ -41,10 +46,32 @@ class FunctionControllerTest extends TestCase {
         return true;
     }
 
+    public function expectExecCommands($commands, $returnValues) {
+        $execMock = $this->getFunctionMock(__NAMESPACE__, "exec");
+        $execMock->expects($this->any())
+                 ->with($this->isType('string'), $this->anything())
+                 ->willReturnCallback([$this, 'execCommandsCallback']);
+    
+        $this->commands = $commands;
+        $this->returnValues = $returnValues;
+    }
+    
+    public function execCommandsCallback($command, &$output) {
+        $commandIndex = array_search($command, $this->commands);
+        if ($commandIndex !== false) {
+            $output[] = $this->returnValues[$commandIndex];
+            return true;
+        }
+        return false;
+    }
+    
+    
+
+
     /**
       * @runInSeparateProcess
     */    
-    public function testCreateDirSuccess() {
+    public function testPostDirectorySuccess() {
         $testdir = 'dir1/dir2';
         $command = 'curl -X MKCOL -k -u  https://localhost/remote.php/dav/files/oar_api/' . $testdir;
         $expectedResponse = '{"success":true}';
@@ -54,7 +81,7 @@ class FunctionControllerTest extends TestCase {
 
         // Use ReflectionClass to access private methods
         $reflectionClass = new \ReflectionClass($this->api);
-        $reflectionMethod = $reflectionClass->getMethod('createDir');
+        $reflectionMethod = $reflectionClass->getMethod('postDirectory');
         $reflectionMethod->setAccessible(true);
 
         $result = $reflectionMethod->invokeArgs($this->api, array($testdir));
@@ -66,7 +93,7 @@ class FunctionControllerTest extends TestCase {
     /**
       * @runInSeparateProcess
     */    
-    public function testCreateDirFailure() {
+    public function testPostDirectoryFailure() {
         $testdir = 'dir1/dir2';
         $command = 'curl -X MKCOL -k -u  https://localhost/remote.php/dav/files/oar_api/' . $testdir;
         $expectedResponse = '{"error":"Failed to create directory"}';
@@ -76,7 +103,7 @@ class FunctionControllerTest extends TestCase {
 
         // Use ReflectionClass to access private methods
         $reflectionClass = new \ReflectionClass($this->api);
-        $reflectionMethod = $reflectionClass->getMethod('createDir');
+        $reflectionMethod = $reflectionClass->getMethod('postDirectory');
         $reflectionMethod->setAccessible(true);
 
         $result = $reflectionMethod->invokeArgs($this->api, array($testdir));
@@ -88,7 +115,95 @@ class FunctionControllerTest extends TestCase {
     /**
       * @runInSeparateProcess
     */    
-    public function testShareUserSuccess() {
+    public function testGetDirectorySuccess() {
+        $testdir = 'dir1/dir2';
+        $command = 'curl -X PROPFIND -k -u  -H "Depth: 0" https://localhost/remote.php/dav/files/oar_api/' . $testdir;
+        $expectedResponse = '{"success":true}';
+
+        // Mock the exec() function to avoid side effects and increase code reproducibility
+        $this->expectExecCommand($command, $expectedResponse);
+
+        // Use ReflectionClass to access private methods
+        $reflectionClass = new \ReflectionClass($this->api);
+        $reflectionMethod = $reflectionClass->getMethod('getDirectory');
+        $reflectionMethod->setAccessible(true);
+
+        $result = $reflectionMethod->invokeArgs($this->api, array($testdir));
+
+        // Test creating a directory successfully
+        $this->assertEquals(json_encode([$expectedResponse]), $result);
+    }
+
+    /**
+      * @runInSeparateProcess
+    */    
+    public function testGetDirectoryFailure() {
+        $testdir = 'dir1/dir2';
+        $command = 'curl -X PROPFIND -k -u  -H "Depth: 0" https://localhost/remote.php/dav/files/oar_api/' . $testdir;
+        $expectedResponse = '{"error":"Failed to get directory"}';
+
+        // Mock the exec() function to avoid side effects and increase code reproducibility
+        $this->expectExecCommand($command, $expectedResponse);
+
+        // Use ReflectionClass to access private methods
+        $reflectionClass = new \ReflectionClass($this->api);
+        $reflectionMethod = $reflectionClass->getMethod('getDirectory');
+        $reflectionMethod->setAccessible(true);
+
+        $result = $reflectionMethod->invokeArgs($this->api, array($testdir));
+
+        // Test failing to create a directory
+        $this->assertEquals(json_encode([$expectedResponse]), $result);
+    }
+
+    /**
+      * @runInSeparateProcess
+    */    
+    public function testDeleteDirectorySuccess() {
+        $testdir = 'dir1/dir2';
+        $command = 'curl -X DELETE -k -u  https://localhost/remote.php/dav/files/oar_api/' . $testdir;
+        $expectedResponse = '{"success":true}';
+
+        // Mock the exec() function to avoid side effects and increase code reproducibility
+        $this->expectExecCommand($command, $expectedResponse);
+
+        // Use ReflectionClass to access private methods
+        $reflectionClass = new \ReflectionClass($this->api);
+        $reflectionMethod = $reflectionClass->getMethod('deleteDirectory');
+        $reflectionMethod->setAccessible(true);
+
+        $result = $reflectionMethod->invokeArgs($this->api, array($testdir));
+
+        // Test creating a directory successfully
+        $this->assertEquals(json_encode([$expectedResponse]), $result);
+    }
+
+    /**
+      * @runInSeparateProcess
+    */    
+    public function testDeleteDirectoryFailure() {
+        $testdir = 'dir1/dir2';
+        $command = 'curl -X DELETE -k -u  https://localhost/remote.php/dav/files/oar_api/' . $testdir;
+        $expectedResponse = '{"error":"Failed to delete directory"}';
+
+        // Mock the exec() function to avoid side effects and increase code reproducibility
+        $this->expectExecCommand($command, $expectedResponse);
+
+        // Use ReflectionClass to access private methods
+        $reflectionClass = new \ReflectionClass($this->api);
+        $reflectionMethod = $reflectionClass->getMethod('deleteDirectory');
+        $reflectionMethod->setAccessible(true);
+
+        $result = $reflectionMethod->invokeArgs($this->api, array($testdir));
+
+        // Test failing to create a directory
+        $this->assertEquals(json_encode([$expectedResponse]), $result);
+    }
+
+    /**
+      * @runInSeparateProcess
+    */    
+    public function testPostUserPermissionsSuccess() {
         $user = 'testuser';
         $perm = 'read';
         $dir = 'testdir';
@@ -100,7 +215,7 @@ class FunctionControllerTest extends TestCase {
 
         // Use ReflectionClass to access private methods
         $reflectionClass = new \ReflectionClass($this->api);
-        $reflectionMethod = $reflectionClass->getMethod('shareUser');
+        $reflectionMethod = $reflectionClass->getMethod('postUserPermissions');
         $reflectionMethod->setAccessible(true);
 
         $result = $reflectionMethod->invokeArgs($this->api, array($user, $perm, $dir));
@@ -112,7 +227,7 @@ class FunctionControllerTest extends TestCase {
     /**
       * @runInSeparateProcess
     */    
-    public function testShareUserFailure() {
+    public function testPostUserPermissionsFailure() {
         $user = 'testuser';
         $perm = 'read';
         $dir = 'testdir';
@@ -124,13 +239,168 @@ class FunctionControllerTest extends TestCase {
 
         // Use ReflectionClass to access private methods
         $reflectionClass = new \ReflectionClass($this->api);
-        $reflectionMethod = $reflectionClass->getMethod('shareUser');
+        $reflectionMethod = $reflectionClass->getMethod('postUserPermissions');
         $reflectionMethod->setAccessible(true);
 
         $result = $reflectionMethod->invokeArgs($this->api, array($user, $perm, $dir));
 
         // Test failing to share a file/folder with user
         $this->assertEquals(json_encode([$expectedResponse]), $result);
+    }
+
+    /**
+      * @runInSeparateProcess
+    */    
+    public function testGetUserPermissionsSuccess() {
+        $user = 'testuser';
+        $perm = 'read';
+        $dir = 'testdir';
+        $command = 'curl -X GET -H "OCS-APIRequest: true" -k -u  \'' . 'https://localhost/ocs/v2.php/apps/files_sharing/api/v1/shares?path=/' . $user . '&reshares=true\'';
+        $expectedResponse = '{"success":true}';
+
+        // Mock the exec() function to avoid side effects and increase code reproducibility
+        $this->expectExecCommand($command, $expectedResponse);
+
+        // Use ReflectionClass to access private methods
+        $reflectionClass = new \ReflectionClass($this->api);
+        $reflectionMethod = $reflectionClass->getMethod('getUserPermissions');
+        $reflectionMethod->setAccessible(true);
+
+        $result = $reflectionMethod->invokeArgs($this->api, array($user, $perm, $dir));
+
+        // Test sharing a file/folder with user successfully
+        $this->assertEquals(json_encode([$expectedResponse]), $result);
+    }
+
+    /**
+      * @runInSeparateProcess
+    */    
+    public function testGetUserPermissionsFailure() {
+        $user = 'testuser';
+        $perm = 'read';
+        $dir = 'testdir';
+        $command = 'curl -X GET -H "OCS-APIRequest: true" -k -u  \'' . 'https://localhost/ocs/v2.php/apps/files_sharing/api/v1/shares?path=/' . $user . '&reshares=true\'';
+        $expectedResponse = '{"error":"Failed to get user file/folder permissions"}';
+
+        // Mock the exec() function to avoid side effects and increase code reproducibility
+        $this->expectExecCommand($command, $expectedResponse);
+
+        // Use ReflectionClass to access private methods
+        $reflectionClass = new \ReflectionClass($this->api);
+        $reflectionMethod = $reflectionClass->getMethod('getUserPermissions');
+        $reflectionMethod->setAccessible(true);
+
+        $result = $reflectionMethod->invokeArgs($this->api, array($user, $perm, $dir));
+
+        // Test failing to share a file/folder with user
+        $this->assertEquals(json_encode([$expectedResponse]), $result);
+    }
+
+    /**
+     * @runInSeparateProcess
+     */    
+    public function testDeleteUserPermissionsSuccess() {
+        $user = 'testuser';
+        $dir = 'testdir';
+        $command = 'curl -X GET -H "OCS-APIRequest: true" -k -u  "https://localhost/ocs/v2.php/apps/files_sharing/api/v1/shares?path=/' . $dir . '&reshares=true"';
+        $deleteCommand = 'curl -X DELETE -H "OCS-APIRequest: true" -k -u  "https://localhost/ocs/v2.php/apps/files_sharing/api/v1/shares/1"';
+        $getExpectedResponse = '<id>1</id><share_with>testuser</share_with>';
+        $deleteExpectedResponse = [];
+
+        // Mock the exec() function to avoid side effects and increase code reproducibility
+        $this->expectExecCommands([$command, $deleteCommand], [$getExpectedResponse, $deleteExpectedResponse]);
+
+        // Use ReflectionClass to access private methods
+        $reflectionClass = new \ReflectionClass($this->api);
+        $reflectionMethod = $reflectionClass->getMethod('deleteUserPermissions');
+        $reflectionMethod->setAccessible(true);
+
+        $result = $reflectionMethod->invokeArgs($this->api, array($user, $dir));
+
+        // Test deleting user permissions successfully
+        $this->assertEquals(json_encode($deleteExpectedResponse), $result);
+    }
+
+
+    /**
+     * @runInSeparateProcess
+     */    
+    public function testDeleteUserPermissionsFailure() {
+        $user = 'testuser';
+        $dir = 'testdir';
+        $command = 'curl -X GET -H "OCS-APIRequest: true" -k -u  \'https://localhost/ocs/v2.php/apps/files_sharing/api/v1/shares?path=/' . $dir . '&reshares=true\'';
+        $getExpectedResponse = '<id>1</id><share_with>wronguser</share_with>';
+
+        // Mock the exec() function to avoid side effects and increase code reproducibility
+        $this->expectExecCommand($command, $getExpectedResponse);
+
+        // Use ReflectionClass to access private methods
+        $reflectionClass = new \ReflectionClass($this->api);
+        $reflectionMethod = $reflectionClass->getMethod('deleteUserPermissions');
+        $reflectionMethod->setAccessible(true);
+
+        $result = $reflectionMethod->invokeArgs($this->api, array($user, $dir));
+
+        // Test failing to delete user permissions
+        $this->assertEquals(json_encode([$getExpectedResponse]), $result);
+    }
+
+    /**
+     * @runInSeparateProcess
+     */    
+    public function testPutUserPermissionsSuccess() {
+        $user = 'testuser';
+        $perm = 'read';
+        $dir = 'testdir';
+
+        // Create expected command calls and responses for the two functions called within putUserPermissions
+        $getCommand = 'curl -X GET -H "OCS-APIRequest: true" -k -u  "https://localhost/ocs/v2.php/apps/files_sharing/api/v1/shares?path=/' . $dir . '&reshares=true"';
+        $deleteCommand = 'curl -X DELETE -H "OCS-APIRequest: true" -k -u  "https://localhost/ocs/v2.php/apps/files_sharing/api/v1/shares/1"';
+        $postCommand = 'curl -X POST -H "ocs-apirequest:true" -k -u  "https://localhost/ocs/v2.php/apps/files_sharing/api/v1/shares?shareType=0&path=' . $dir . '&shareWith=' . $user . '&permissions=' . $perm . '"';
+        $getExpectedResponse = '<id>1</id><share_with>testuser</share_with>';
+        $deleteExpectedResponse = '{"success":true}';
+        $postExpectedResponse = '{"success":true}';
+
+        // Mock the exec() function to avoid side effects and increase code reproducibility
+        $this->expectExecCommands([$getCommand, $deleteCommand, $postCommand], [$getExpectedResponse, $deleteExpectedResponse, $postExpectedResponse]);
+
+        // Use ReflectionClass to access private methods
+        $reflectionClass = new \ReflectionClass($this->api);
+        $reflectionMethod = $reflectionClass->getMethod('putUserPermissions');
+        $reflectionMethod->setAccessible(true);
+
+        $result = $reflectionMethod->invokeArgs($this->api, array($user, $perm, $dir));
+
+        // Test modifying user permissions successfully
+        $this->assertEquals(json_encode([$postExpectedResponse]), $result);
+    }
+
+    /**
+     * @runInSeparateProcess
+     */    
+    public function testPutUserPermissionsFailure() {
+        $user = 'testuser';
+        $perm = 'read';
+        $dir = 'testdir';
+
+        // Create expected command calls and responses for the two functions called within putUserPermissions
+        $getCommand = 'curl -X GET -H "OCS-APIRequest: true" -k -u  "https://localhost/ocs/v2.php/apps/files_sharing/api/v1/shares?path=/' . $dir . '&reshares=true"';
+        $deleteCommand = 'curl -X DELETE -H "OCS-APIRequest: true" -k -u  "https://localhost/ocs/v2.php/apps/files_sharing/api/v1/shares/1"';
+        $getExpectedResponse = '<id>1</id><share_with>testuser</share_with>';
+        $deleteExpectedResponse = null;
+
+        // Mock the exec() function to avoid side effects and increase code reproducibility
+        $this->expectExecCommands([$getCommand, $deleteCommand], [$getExpectedResponse, $deleteExpectedResponse]);
+
+        // Use ReflectionClass to access private methods
+        $reflectionClass = new \ReflectionClass($this->api);
+        $reflectionMethod = $reflectionClass->getMethod('putUserPermissions');
+        $reflectionMethod->setAccessible(true);
+
+        $result = $reflectionMethod->invokeArgs($this->api, array($user, $perm, $dir));
+
+        // Test failing to modify user permissions
+        $this->assertEquals($deleteExpectedResponse, $result);
     }
 
     /**
@@ -188,7 +458,7 @@ class FunctionControllerTest extends TestCase {
       * @runInSeparateProcess
     */
     public function testScanAllFilesSuccess() {
-        $command = 'php /var/www/nextcloud/occ files:scan --all';
+        $command = 'php /var/www/html/occ files:scan --all';
         $expectedResponse = '{"success":true}';
 
         // Mock the exec() function to avoid side effects and increase code reproducibility
@@ -209,7 +479,7 @@ class FunctionControllerTest extends TestCase {
       * @runInSeparateProcess
     */
     public function testScanAllFilesFailure() {
-        $command = 'php /var/www/nextcloud/occ files:scan --all';
+        $command = 'php /var/www/html/occ files:scan --all';
         $expectedResponse = '{"error":"Failed to scan all files"}';
 
         // Mock the exec() function to avoid side effects and increase code reproducibility
@@ -231,7 +501,7 @@ class FunctionControllerTest extends TestCase {
      */
     public function testScanUserFilesSuccess() {
         $user = 'testuser';
-        $command = 'php /var/www/nextcloud/occ files:scan ' . $user;
+        $command = 'php /var/www/html/occ files:scan ' . $user;
         $expectedResponse = '{"success":true}';
 
         // Mock the exec() function to avoid side effects and increase code reproducibility
@@ -254,7 +524,7 @@ class FunctionControllerTest extends TestCase {
     */
     public function testScanUserFilesFailure() {
         $user = 'testuser';
-        $command = 'php /var/www/nextcloud/occ files:scan ' . $user;
+        $command = 'php /var/www/html/occ files:scan ' . $user;
 
         $expectedResponse = '{"error":"Failed to scan user files"}';
 
@@ -278,7 +548,7 @@ class FunctionControllerTest extends TestCase {
      */
     public function testGetUsers()
     {
-        $command = 'php /var/www/nextcloud/occ user:list -i --output json';
+        $command = 'php /var/www/html/occ user:list -i --output json';
         $expectedResponse = '[{"uid":"user1"}, {"uid":"user2"}]';
 
         $this->expectExecCommand($command, $expectedResponse);
@@ -298,7 +568,7 @@ class FunctionControllerTest extends TestCase {
     public function testGetUser()
     {
         $user = 'testuser';
-        $command = 'php /var/www/nextcloud/occ user:info ' . $user . ' --output json';
+        $command = 'php /var/www/html/occ user:info ' . $user . ' --output json';
         $expectedResponse = '{"uid":"testuser", "email":"testuser@example.com"}';
 
         $this->expectExecCommand($command, $expectedResponse);
@@ -318,7 +588,7 @@ class FunctionControllerTest extends TestCase {
     public function testEnableUser()
     {
         $user = 'testuser';
-        $command = 'php /var/www/nextcloud/occ user:enable ' . $user;
+        $command = 'php /var/www/html/occ user:enable ' . $user;
         $expectedResponse = 'User enabled';
 
         $this->expectExecCommand($command, $expectedResponse);
@@ -338,7 +608,7 @@ class FunctionControllerTest extends TestCase {
     public function testDisableUser()
     {
         $user = 'testuser';
-        $command = 'php /var/www/nextcloud/occ user:disable ' . $user;
+        $command = 'php /var/www/html/occ user:disable ' . $user;
         $expectedResponse = 'User disabled';
 
         $this->expectExecCommand($command, $expectedResponse);
@@ -384,7 +654,7 @@ class FunctionControllerTest extends TestCase {
     public function testAddGroup()
     {
         $group = 'testgroup';
-        $command = 'php /var/www/nextcloud/occ group:add ' . $group;
+        $command = 'php /var/www/html/occ group:add ' . $group;
         $arrGroup = ['Group created'];
 
         $expectedResponse = json_encode($arrGroup);
@@ -407,7 +677,7 @@ class FunctionControllerTest extends TestCase {
     {
         $group = 'testgroup';
         $member = 'testuser';
-        $command = 'php /var/www/nextcloud/occ group:adduser ' . $group . ' ' . $member;
+        $command = 'php /var/www/html/occ group:adduser ' . $group . ' ' . $member;
         $arrGroup = ['User added to group'];
 
         $expectedResponse = json_encode($arrGroup);
@@ -429,7 +699,7 @@ class FunctionControllerTest extends TestCase {
     public function testDeleteGroup()
     {
         $group = 'testgroup';
-        $command = 'php /var/www/nextcloud/occ group:delete ' . $group;
+        $command = 'php /var/www/html/occ group:delete ' . $group;
         $arrGroup = ['Group deleted'];
 
         $expectedResponse = json_encode($arrGroup);
@@ -452,7 +722,7 @@ class FunctionControllerTest extends TestCase {
     {
         $group = 'testgroup';
         $member = 'testuser';
-        $command = 'php /var/www/nextcloud/occ group:removeuser ' . $group . ' ' . $member;
+        $command = 'php /var/www/html/occ group:removeuser ' . $group . ' ' . $member;
         $arrGroup = ['User removed from group'];
 
         $expectedResponse = json_encode($arrGroup);
@@ -580,7 +850,7 @@ class FunctionControllerTest extends TestCase {
     public function testCreateLocalExtStorage()
     {
         $name = 'local_storage';
-        $command = 'php /var/www/nextcloud/occ files_external:create ' . $name . ' local null::null';
+        $command = 'php /var/www/html/occ files_external:create ' . $name . ' local null::null';
         $arrExtStorage = ['Local external storage created'];
 
         $expectedResponse = json_encode($arrExtStorage);
@@ -602,7 +872,7 @@ class FunctionControllerTest extends TestCase {
     public function testCreateS3ExtStorage()
     {
         $name = 's3_storage';
-        $command = 'php /var/www/nextcloud/occ files_external:create ' . $name . ' amazons3 amazons3::accesskey';
+        $command = 'php /var/www/html/occ files_external:create ' . $name . ' amazons3 amazons3::accesskey';
         $arrExtStorage = ['S3 external storage created'];
 
         $expectedResponse = json_encode($arrExtStorage);
@@ -626,7 +896,7 @@ class FunctionControllerTest extends TestCase {
         $storageId = '1';
         $key = 'config_key';
         $value = 'config_value';
-        $command = 'php /var/www/nextcloud/occ files_external:config ' . $storageId . ' ' . $key . ' ' . $value;
+        $command = 'php /var/www/html/occ files_external:config ' . $storageId . ' ' . $key . ' ' . $value;
         $arrExtStorage = ['Configuration set'];
 
         $expectedResponse = json_encode($arrExtStorage);
@@ -650,7 +920,7 @@ class FunctionControllerTest extends TestCase {
         $storageId = '1';
         $key = 'option_key';
         $value = 'option_value';
-        $command = 'php /var/www/nextcloud/occ files_external:option ' . $storageId . ' ' . $key . ' ' . $value;
+        $command = 'php /var/www/html/occ files_external:option ' . $storageId . ' ' . $key . ' ' . $value;
         $arrExtStorage = ['Option set'];
 
         $expectedResponse = json_encode($arrExtStorage);
@@ -672,7 +942,7 @@ class FunctionControllerTest extends TestCase {
     public function testDeleteExtStorage()
     {
         $storageId = '1';
-        $command = 'php /var/www/nextcloud/occ files_external:delete -y ' . $storageId;
+        $command = 'php /var/www/html/occ files_external:delete -y ' . $storageId;
         $arrExtStorage = ['External storage deleted'];
 
         $expectedResponse = json_encode($arrExtStorage);
@@ -695,7 +965,7 @@ class FunctionControllerTest extends TestCase {
     {
         $storageId = '1';
         $user = 'user1';
-        $command = 'php /var/www/nextcloud/occ files_external:applicable --add-user ' . $user . ' ' . $storageId;
+        $command = 'php /var/www/html/occ files_external:applicable --add-user ' . $user . ' ' . $storageId;
         $arrExtStorage = ['User added'];
 
         $expectedResponse = json_encode($arrExtStorage);
@@ -718,7 +988,7 @@ class FunctionControllerTest extends TestCase {
     {
         $storageId = '1';
         $user = 'user1';
-        $command = 'php /var/www/nextcloud/occ files_external:applicable --remove-user ' . $user . ' ' . $storageId;
+        $command = 'php /var/www/html/occ files_external:applicable --remove-user ' . $user . ' ' . $storageId;
         $arrExtStorage = ['User removed'];
 
         $expectedResponse = json_encode($arrExtStorage);
@@ -741,7 +1011,7 @@ class FunctionControllerTest extends TestCase {
     {
         $storageId = '1';
         $group = 'group1';
-        $command = 'php /var/www/nextcloud/occ files_external:applicable --add-group ' . $group . ' ' . $storageId;
+        $command = 'php /var/www/html/occ files_external:applicable --add-group ' . $group . ' ' . $storageId;
         $arrExtStorage = ['Group added'];
 
         $expectedResponse = json_encode($arrExtStorage);
@@ -764,7 +1034,7 @@ class FunctionControllerTest extends TestCase {
     {
         $storageId = '1';
         $group = 'group1';
-        $command = 'php /var/www/nextcloud/occ files_external:applicable --remove-group ' . $group . ' ' . $storageId;
+        $command = 'php /var/www/html/occ files_external:applicable --remove-group ' . $group . ' ' . $storageId;
         $arrExtStorage = ['Group removed'];
 
         $expectedResponse = json_encode($arrExtStorage);
