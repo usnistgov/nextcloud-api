@@ -1,4 +1,8 @@
+# Use official nextcloud image as base
 FROM nextcloud:apache
+
+# Copy autoconfig file for Nextcloud automatic installation
+COPY ./config/autoconfig.php /var/www/html/config/autoconfig.php
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
