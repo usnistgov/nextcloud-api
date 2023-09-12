@@ -40,7 +40,7 @@ class FunctionController extends \NamespaceBase\BaseController
 
     public function __construct()
     {
-        $configFilePath = '/config/config.php';
+        $configFilePath = '/config/custom_config.php';
         if (!file_exists($configFilePath)) {
             throw new \RuntimeException("Config file not found: {$configFilePath}");
         }
