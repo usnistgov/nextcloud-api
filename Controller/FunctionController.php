@@ -145,7 +145,15 @@ class FunctionController extends \NamespaceBase\BaseController
 
         if ($requestMethod == "POST") {
             // POST method
-            if ($arrQueryUri[4] == "directory") {
+            if ($arrQueryUri[4] == "file") {
+                // "/genapi.php/files/file/{filename.extension} Endpoint - creates file
+                // Expects 'path' (directory path) and 'content' (file content) key-value pairs in payload
+                $payload = json_decode(file_get_contents('php://input'), true);
+                $file = $arrQueryUri[5];
+                $path = isset($payload['path']) ? $payload['path'] : ''; // Get the directory path from the payload
+                $content = isset($payload['content']) ? $payload['content'] : ''; // Get the content from the payload
+                $this->postFile($file, $path, $content);
+            } elseif ($arrQueryUri[4] == "directory") {
                 // "/genapi.php/files/directory/{directory name}" Endpoint - creates directory
                 $dir = $arrQueryUri[5];
                 for ($i = 6; $i < count($arrQueryUri); $i++) {
@@ -266,6 +274,26 @@ class FunctionController extends \NamespaceBase\BaseController
      */
     private function getFile($file)
     {
+    }
+
+    /**
+     * "-X POST /files/file/filename.extension Endpoint - creates file
+     */
+    private function postFile($file, $path, $content)
+    {
+        $fullPath = ($path ? rtrim($path, '/') . '/' : '') . ltrim($file, '/');
+        $command = "curl -X PUT -k -u " . 
+                escapeshellarg(self::$oar_api_login) . 
+                " --data-binary " . escapeshellarg($content) . 
+                " https://localhost/remote.php/dav/files/oar_api/" . 
+                $fullPath;
+
+        if (exec($command, $arrUser)) {
+            $responseData = json_encode($arrUser);
+            $this->sendOkayOutput($responseData);
+
+            return $responseData;
+        }
     }
 
     /**
