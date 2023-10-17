@@ -146,13 +146,16 @@ class FunctionController extends \NamespaceBase\BaseController
         if ($requestMethod == "POST") {
             // POST method
             if ($arrQueryUri[4] == "file") {
-                // "/genapi.php/files/file/{filename.extension} Endpoint - creates file
-                // Expects 'path' (directory path) and 'content' (file content) key-value pairs in payload
-                $payload = json_decode(file_get_contents('php://input'), true);
-                $file = $arrQueryUri[5];
-                $path = isset($payload['path']) ? $payload['path'] : ''; // Get the directory path from the payload
-                $content = isset($payload['content']) ? $payload['content'] : ''; // Get the content from the payload
-                $this->postFile($file, $path, $content);
+                // "/genapi.php/files/file/{path to destination directory (optional: default is oar_api root dir)} Endpoint - creates file
+                $destinationPath = isset($arrQueryUri[5]) ? $arrQueryUri[5] : '';
+                for ($i = 6; $i < count($arrQueryUri); $i++) {
+                    if (isset($arrQueryUri[$i])) {
+                        $destinationPath .= "/" . $arrQueryUri[$i];
+                    }
+                }
+                // Assuming the file is sent with a field name 'file'
+                $localFilePath = $_FILES['file']['tmp_name'] ?? null;
+                $this->postFile($localFilePath, $destinationPath);
             } elseif ($arrQueryUri[4] == "directory") {
                 // "/genapi.php/files/directory/{directory name}" Endpoint - creates directory
                 $dir = $arrQueryUri[5];
@@ -242,13 +245,6 @@ class FunctionController extends \NamespaceBase\BaseController
     }
 
     /**
-     * "-X POST /files/putfile/{file path}" Endpoint - uploads file TODO
-     */
-    private function putFile($file)
-    {
-    }
-
-    /**
      * "-X DELETE /files/deletefile/{file path}" Endpoint - deletes file TODO
      */
     private function deleteFile($file)
@@ -277,22 +273,37 @@ class FunctionController extends \NamespaceBase\BaseController
     }
 
     /**
-     * "-X POST /files/file/filename.extension Endpoint - creates file
+     * "-X POST /files/file/{ path to destination directory } Endpoint - creates file
      */
-    private function postFile($file, $path, $content)
-    {
-        $fullPath = ($path ? rtrim($path, '/') . '/' : '') . ltrim($file, '/');
-        $command = "curl -X PUT -k -u " . 
-                escapeshellarg(self::$oar_api_login) . 
-                " --data-binary " . escapeshellarg($content) . 
-                " https://localhost/remote.php/dav/files/oar_api/" . 
-                $fullPath;
+    private function postFile($localFilePath, $destinationPath) {
+        // Check if file was provided and uploaded without errors
+        if (!$localFilePath || !isset($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
+            $error = "File upload error!";
+            $this->sendError500Output($error);
+            return $error;
+        }
+        // Extract filename and extension from the local file path
+        $originalFilename = $_FILES['file']['name'];
+        $fileInfo = pathinfo($originalFilename);
+        $filenameWithExtension = $fileInfo['basename'];
+        
+    
+        // Construct the full destination path for the file on Nextcloud
+        $fullDestinationPath = ($destinationPath ? rtrim($destinationPath, '/') . '/' : '') . $filenameWithExtension;
 
-        if (exec($command, $arrUser)) {
-            $responseData = json_encode($arrUser);
+        $command = "curl -X PUT -k -u " . escapeshellarg(self::$oar_api_login) . 
+        " --data-binary @" . escapeshellarg($localFilePath) . 
+        " https://localhost/remote.php/dav/files/oar_api/" . $fullDestinationPath;
+
+        exec($command, $output, $return_var);
+
+        if ($return_var === 0) {
+            $responseData = json_encode($output);
             $this->sendOkayOutput($responseData);
-
             return $responseData;
+        } else {
+            $this->sendError500Output("File upload failed!"); 
+            return null;
         }
     }
 
@@ -380,6 +391,15 @@ class FunctionController extends \NamespaceBase\BaseController
             return $responseData;
         }
     }
+
+
+    /**
+     * "-X PUT /files/scan/{directory}" Endpoint - scan directory file system
+     */
+    private function scanDirectoryFiles($dir) {
+        #TODO
+    }
+
 
     /**
      * "-X POST /files/userpermissions/{user}/{permissions}/{directory}" Endpoint - share file/folder with user with permissions
