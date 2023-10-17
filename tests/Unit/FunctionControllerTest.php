@@ -41,8 +41,9 @@ class FunctionControllerTest extends TestCase {
         $this->returnValue = $returnValue;
     }
     
-    public function execCommandCallback($command, &$output) {
+    public function execCommandCallback($command, &$output, &$return_var = null) {
         $output[] = $this->returnValue;
+        $return_var = 0;
         return true;
     }
 
@@ -56,16 +57,86 @@ class FunctionControllerTest extends TestCase {
         $this->returnValues = $returnValues;
     }
     
-    public function execCommandsCallback($command, &$output) {
+    public function execCommandsCallback($command, &$output, &$return_var = null) {
         $commandIndex = array_search($command, $this->commands);
         if ($commandIndex !== false) {
             $output[] = $this->returnValues[$commandIndex];
+            $return_var = 0;
             return true;
         }
+        $return_var = 1;
         return false;
     }
     
-    
+    /**
+     * @runInSeparateProcess
+     */    
+    public function testPostFileSuccess() {
+        $localFilePath = '/path/to/temp/file.txt';
+        $destinationPath = 'someDir';
+        $filename = 'file.txt';
+        $oar_api_login = "''";
+        
+        // Mocking the $_FILES global variable
+        $_FILES = [
+            'file' => [
+                'tmp_name' => $localFilePath,
+                'name' => $filename,
+                'error' => UPLOAD_ERR_OK
+            ]
+        ];
+
+        $command = "curl -X PUT -k -u " . $oar_api_login . " --data-binary @" . escapeshellarg($localFilePath) . 
+        " https://localhost/remote.php/dav/files/oar_api/" . $destinationPath . "/" . $filename;
+        $expectedResponse = '{"success":true}';
+
+        // Mock the exec() function to avoid side effects and increase code reproducibility
+        $this->expectExecCommand($command, $expectedResponse);
+
+        // Use ReflectionClass to access private methods
+        $reflectionClass = new \ReflectionClass($this->api);
+        $reflectionMethod = $reflectionClass->getMethod('postFile');
+        $reflectionMethod->setAccessible(true);
+
+        $result = $reflectionMethod->invokeArgs($this->api, array($localFilePath, $destinationPath));
+
+        $this->assertEquals(json_encode([$expectedResponse]), $result);
+    }
+
+    /**
+     * @runInSeparateProcess
+     */    
+    public function testPostFileFailure() {
+        $localFilePath = '/path/to/temp/file.txt';
+        $destinationPath = 'someDir';
+        $filename = 'file.txt';
+        $oar_api_login = "''";
+        
+        // Mocking the $_FILES global variable
+        $_FILES = [
+            'file' => [
+                'tmp_name' => $localFilePath,
+                'name' => $filename,
+                'error' => UPLOAD_ERR_OK
+            ]
+        ];
+
+        $command = "curl -X PUT -k -u " . $oar_api_login . " --data-binary @" . escapeshellarg($localFilePath) . 
+        " https://localhost/remote.php/dav/files/oar_api/" . $destinationPath . "/" . $filename;
+        $expectedResponse = '{"error":"Failed to upload file"}';
+
+        // Mock the exec() function to simulate a failure
+        $this->expectExecCommand($command, $expectedResponse, 1); // 1 indicates an error in exec
+
+        // Use ReflectionClass to access private methods
+        $reflectionClass = new \ReflectionClass($this->api);
+        $reflectionMethod = $reflectionClass->getMethod('postFile');
+        $reflectionMethod->setAccessible(true);
+
+        $result = $reflectionMethod->invokeArgs($this->api, array($localFilePath, $destinationPath));
+
+        $this->assertEquals(json_encode([$expectedResponse]), $result);
+    }
 
 
     /**
