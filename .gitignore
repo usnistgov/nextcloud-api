@@ -2,7 +2,7 @@
 test*.php
 
 # shell scripts
-*.sh
+php/*.sh
 
 # vscode directory
 .vscode/*
