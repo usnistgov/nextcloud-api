@@ -6,3 +6,8 @@ test*.php
 
 # vscode directory
 .vscode/*
+
+#builds for deployment
+*/dist/*
+dist/*
+VERSION

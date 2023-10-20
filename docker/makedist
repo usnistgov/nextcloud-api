@@ -13,7 +13,7 @@
 #
 
 
-echo "********************** makdist in docker"
+echo "********************** makdist in docker for nextcloud-api"
 prog=`basename $0`
 execdir=`dirname $0`
 [ "$execdir" = "" -o "$execdir" = "." ] && execdir=$PWD
@@ -24,7 +24,6 @@ echo "Creating scripts directory path"
 #This is a repo level scripts directory
 scriptsdir=$DOCKERDIR/../scripts/
 
-
-
-exec $DOCKERDIR/run.sh build "$@"
-
+echo "Build php $@"
+#This builds the python section of the portal code
+$scriptsdir/makedist
