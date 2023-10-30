@@ -11,7 +11,8 @@ require_once('./Controller/FunctionController.php');
 /**
  * @backupGlobals enabled
  */
-class FunctionControllerTest extends TestCase {
+class FunctionControllerTest extends TestCase
+{
     use \phpmock\phpunit\PHPMock;
 
     private $api;
@@ -20,44 +21,50 @@ class FunctionControllerTest extends TestCase {
     private $commands;
     private $returnValues;
 
-    public function setUp(): void {
+    public function setUp(): void
+    {
         // create a mock for the FunctionController
         $this->api = $this->getMockBuilder(FunctionController::class)
-                          ->disableOriginalConstructor()
-                          ->setMethods(null) // Set the methods you want to mock, null for a partial mock
-                          ->getMock();
+            ->disableOriginalConstructor()
+            ->setMethods(null) // Set the methods you want to mock, null for a partial mock
+            ->getMock();
     }
 
-    public function tearDown(): void {
+    public function tearDown(): void
+    {
         unset($this->api);
     }
 
-    public function expectExecCommand($command, $returnValue) {
+    public function expectExecCommand($command, $returnValue)
+    {
         $execMock = $this->getFunctionMock(__NAMESPACE__, "exec");
         $execMock->expects($this->any())
-                 ->with($command, $this->anything())
-                 ->willReturnCallback([$this, 'execCommandCallback']);
-    
+            ->with($command, $this->anything())
+            ->willReturnCallback([$this, 'execCommandCallback']);
+
         $this->returnValue = $returnValue;
     }
-    
-    public function execCommandCallback($command, &$output, &$return_var = null) {
+
+    public function execCommandCallback($command, &$output, &$return_var = null)
+    {
         $output[] = $this->returnValue;
         $return_var = 0;
         return true;
     }
 
-    public function expectExecCommands($commands, $returnValues) {
+    public function expectExecCommands($commands, $returnValues)
+    {
         $execMock = $this->getFunctionMock(__NAMESPACE__, "exec");
         $execMock->expects($this->any())
-                 ->with($this->isType('string'), $this->anything())
-                 ->willReturnCallback([$this, 'execCommandsCallback']);
-    
+            ->with($this->isType('string'), $this->anything())
+            ->willReturnCallback([$this, 'execCommandsCallback']);
+
         $this->commands = $commands;
         $this->returnValues = $returnValues;
     }
-    
-    public function execCommandsCallback($command, &$output, &$return_var = null) {
+
+    public function execCommandsCallback($command, &$output, &$return_var = null)
+    {
         $commandIndex = array_search($command, $this->commands);
         if ($commandIndex !== false) {
             $output[] = $this->returnValues[$commandIndex];
@@ -67,16 +74,17 @@ class FunctionControllerTest extends TestCase {
         $return_var = 1;
         return false;
     }
-    
+
     /**
      * @runInSeparateProcess
-     */    
-    public function testPostFileSuccess() {
+     */
+    public function testPostFileSuccess()
+    {
         $localFilePath = '/path/to/temp/file.txt';
         $destinationPath = 'someDir';
         $filename = 'file.txt';
         $oar_api_login = "''";
-        
+
         // Mocking the $_FILES global variable
         $_FILES = [
             'file' => [
@@ -86,8 +94,8 @@ class FunctionControllerTest extends TestCase {
             ]
         ];
 
-        $command = "curl -X PUT -k -u " . $oar_api_login . " --data-binary @" . escapeshellarg($localFilePath) . 
-        " https://localhost/remote.php/dav/files/oar_api/" . $destinationPath . "/" . $filename;
+        $command = "curl -X PUT -k -u " . $oar_api_login . " --data-binary @" . escapeshellarg($localFilePath) .
+            " https://localhost/remote.php/dav/files/oar_api/" . $destinationPath . "/" . $filename;
         $expectedResponse = '{"success":true}';
 
         // Mock the exec() function to avoid side effects and increase code reproducibility
@@ -105,13 +113,14 @@ class FunctionControllerTest extends TestCase {
 
     /**
      * @runInSeparateProcess
-     */    
-    public function testPostFileFailure() {
+     */
+    public function testPostFileFailure()
+    {
         $localFilePath = '/path/to/temp/file.txt';
         $destinationPath = 'someDir';
         $filename = 'file.txt';
         $oar_api_login = "''";
-        
+
         // Mocking the $_FILES global variable
         $_FILES = [
             'file' => [
@@ -121,8 +130,8 @@ class FunctionControllerTest extends TestCase {
             ]
         ];
 
-        $command = "curl -X PUT -k -u " . $oar_api_login . " --data-binary @" . escapeshellarg($localFilePath) . 
-        " https://localhost/remote.php/dav/files/oar_api/" . $destinationPath . "/" . $filename;
+        $command = "curl -X PUT -k -u " . $oar_api_login . " --data-binary @" . escapeshellarg($localFilePath) .
+            " https://localhost/remote.php/dav/files/oar_api/" . $destinationPath . "/" . $filename;
         $expectedResponse = '{"error":"Failed to upload file"}';
 
         // Mock the exec() function to simulate a failure
@@ -140,9 +149,10 @@ class FunctionControllerTest extends TestCase {
 
 
     /**
-      * @runInSeparateProcess
-    */    
-    public function testPostDirectorySuccess() {
+     * @runInSeparateProcess
+     */
+    public function testPostDirectorySuccess()
+    {
         $testdir = 'dir1/dir2';
         $command = 'curl -X MKCOL -k -u  https://localhost/remote.php/dav/files/oar_api/' . $testdir;
         $expectedResponse = '{"success":true}';
@@ -162,9 +172,10 @@ class FunctionControllerTest extends TestCase {
     }
 
     /**
-      * @runInSeparateProcess
-    */    
-    public function testPostDirectoryFailure() {
+     * @runInSeparateProcess
+     */
+    public function testPostDirectoryFailure()
+    {
         $testdir = 'dir1/dir2';
         $command = 'curl -X MKCOL -k -u  https://localhost/remote.php/dav/files/oar_api/' . $testdir;
         $expectedResponse = '{"error":"Failed to create directory"}';
@@ -184,9 +195,10 @@ class FunctionControllerTest extends TestCase {
     }
 
     /**
-      * @runInSeparateProcess
-    */    
-    public function testGetDirectorySuccess() {
+     * @runInSeparateProcess
+     */
+    public function testGetDirectorySuccess()
+    {
         $testdir = 'dir1/dir2';
         $command = 'curl -X PROPFIND -k -u  -H "Depth: 0" https://localhost/remote.php/dav/files/oar_api/' . $testdir;
         $expectedResponse = '{"success":true}';
@@ -206,9 +218,10 @@ class FunctionControllerTest extends TestCase {
     }
 
     /**
-      * @runInSeparateProcess
-    */    
-    public function testGetDirectoryFailure() {
+     * @runInSeparateProcess
+     */
+    public function testGetDirectoryFailure()
+    {
         $testdir = 'dir1/dir2';
         $command = 'curl -X PROPFIND -k -u  -H "Depth: 0" https://localhost/remote.php/dav/files/oar_api/' . $testdir;
         $expectedResponse = '{"error":"Failed to get directory"}';
@@ -228,9 +241,10 @@ class FunctionControllerTest extends TestCase {
     }
 
     /**
-      * @runInSeparateProcess
-    */    
-    public function testDeleteDirectorySuccess() {
+     * @runInSeparateProcess
+     */
+    public function testDeleteDirectorySuccess()
+    {
         $testdir = 'dir1/dir2';
         $command = 'curl -X DELETE -k -u  https://localhost/remote.php/dav/files/oar_api/' . $testdir;
         $expectedResponse = '{"success":true}';
@@ -250,9 +264,10 @@ class FunctionControllerTest extends TestCase {
     }
 
     /**
-      * @runInSeparateProcess
-    */    
-    public function testDeleteDirectoryFailure() {
+     * @runInSeparateProcess
+     */
+    public function testDeleteDirectoryFailure()
+    {
         $testdir = 'dir1/dir2';
         $command = 'curl -X DELETE -k -u  https://localhost/remote.php/dav/files/oar_api/' . $testdir;
         $expectedResponse = '{"error":"Failed to delete directory"}';
@@ -272,9 +287,10 @@ class FunctionControllerTest extends TestCase {
     }
 
     /**
-      * @runInSeparateProcess
-    */    
-    public function testPostUserPermissionsSuccess() {
+     * @runInSeparateProcess
+     */
+    public function testPostUserPermissionsSuccess()
+    {
         $user = 'testuser';
         $perm = 'read';
         $dir = 'testdir';
@@ -296,9 +312,10 @@ class FunctionControllerTest extends TestCase {
     }
 
     /**
-      * @runInSeparateProcess
-    */    
-    public function testPostUserPermissionsFailure() {
+     * @runInSeparateProcess
+     */
+    public function testPostUserPermissionsFailure()
+    {
         $user = 'testuser';
         $perm = 'read';
         $dir = 'testdir';
@@ -320,9 +337,10 @@ class FunctionControllerTest extends TestCase {
     }
 
     /**
-      * @runInSeparateProcess
-    */    
-    public function testGetUserPermissionsSuccess() {
+     * @runInSeparateProcess
+     */
+    public function testGetUserPermissionsSuccess()
+    {
         $user = 'testuser';
         $perm = 'read';
         $dir = 'testdir';
@@ -344,9 +362,10 @@ class FunctionControllerTest extends TestCase {
     }
 
     /**
-      * @runInSeparateProcess
-    */    
-    public function testGetUserPermissionsFailure() {
+     * @runInSeparateProcess
+     */
+    public function testGetUserPermissionsFailure()
+    {
         $user = 'testuser';
         $perm = 'read';
         $dir = 'testdir';
@@ -369,8 +388,9 @@ class FunctionControllerTest extends TestCase {
 
     /**
      * @runInSeparateProcess
-     */    
-    public function testDeleteUserPermissionsSuccess() {
+     */
+    public function testDeleteUserPermissionsSuccess()
+    {
         $user = 'testuser';
         $dir = 'testdir';
         $command = 'curl -X GET -H "OCS-APIRequest: true" -k -u  "https://localhost/ocs/v2.php/apps/files_sharing/api/v1/shares?path=/' . $dir . '&reshares=true"';
@@ -395,8 +415,9 @@ class FunctionControllerTest extends TestCase {
 
     /**
      * @runInSeparateProcess
-     */    
-    public function testDeleteUserPermissionsFailure() {
+     */
+    public function testDeleteUserPermissionsFailure()
+    {
         $user = 'testuser';
         $dir = 'testdir';
         $command = 'curl -X GET -H "OCS-APIRequest: true" -k -u  \'https://localhost/ocs/v2.php/apps/files_sharing/api/v1/shares?path=/' . $dir . '&reshares=true\'';
@@ -418,8 +439,9 @@ class FunctionControllerTest extends TestCase {
 
     /**
      * @runInSeparateProcess
-     */    
-    public function testPutUserPermissionsSuccess() {
+     */
+    public function testPutUserPermissionsSuccess()
+    {
         $user = 'testuser';
         $perm = 'read';
         $dir = 'testdir';
@@ -448,8 +470,9 @@ class FunctionControllerTest extends TestCase {
 
     /**
      * @runInSeparateProcess
-     */    
-    public function testPutUserPermissionsFailure() {
+     */
+    public function testPutUserPermissionsFailure()
+    {
         $user = 'testuser';
         $perm = 'read';
         $dir = 'testdir';
@@ -475,14 +498,15 @@ class FunctionControllerTest extends TestCase {
     }
 
     /**
-      * @runInSeparateProcess
-    */    
-    public function testShareGroupSuccess() {
+     * @runInSeparateProcess
+     */
+    public function testShareGroupSuccess()
+    {
         $user = 'testuser';
         $group = 'testgroup';
         $perm = 'write';
         $dir = 'testdir';
-        $command = 'curl -X POST -H "ocs-apirequest:true" -k -u  "https://localhost/ocs/v2.php/apps/files_sharing/api/v1/shares?shareType=1&path=' . $dir . '&shareWith='. $group . '&permissions=' . $perm . '"';
+        $command = 'curl -X POST -H "ocs-apirequest:true" -k -u  "https://localhost/ocs/v2.php/apps/files_sharing/api/v1/shares?shareType=1&path=' . $dir . '&shareWith=' . $group . '&permissions=' . $perm . '"';
         $expectedResponse = '{"success":true}';
 
         // Mock the exec() function to avoid side effects and increase code reproducibility
@@ -500,15 +524,16 @@ class FunctionControllerTest extends TestCase {
     }
 
     /**
-      * @runInSeparateProcess
-    */
-    public function testShareGroupFailure() {
+     * @runInSeparateProcess
+     */
+    public function testShareGroupFailure()
+    {
         $user = 'testuser';
         $group = 'testgroup';
         $perm = 'write';
-        $dir = 'testdir';  
-        $command = 'curl -X POST -H "ocs-apirequest:true" -k -u  "https://localhost/ocs/v2.php/apps/files_sharing/api/v1/shares?shareType=1&path=' . $dir . '&shareWith='. $group . '&permissions=' . $perm . '"';
-        
+        $dir = 'testdir';
+        $command = 'curl -X POST -H "ocs-apirequest:true" -k -u  "https://localhost/ocs/v2.php/apps/files_sharing/api/v1/shares?shareType=1&path=' . $dir . '&shareWith=' . $group . '&permissions=' . $perm . '"';
+
         $expectedResponse = '{"error":"Failed to share file/folder with group"}';
 
         // Mock the exec() function to avoid side effects and increase code reproducibility
@@ -526,9 +551,10 @@ class FunctionControllerTest extends TestCase {
     }
 
     /**
-      * @runInSeparateProcess
-    */
-    public function testScanAllFilesSuccess() {
+     * @runInSeparateProcess
+     */
+    public function testScanAllFilesSuccess()
+    {
         $command = 'php /var/www/html/occ files:scan --all';
         $expectedResponse = '{"success":true}';
 
@@ -547,9 +573,10 @@ class FunctionControllerTest extends TestCase {
     }
 
     /**
-      * @runInSeparateProcess
-    */
-    public function testScanAllFilesFailure() {
+     * @runInSeparateProcess
+     */
+    public function testScanAllFilesFailure()
+    {
         $command = 'php /var/www/html/occ files:scan --all';
         $expectedResponse = '{"error":"Failed to scan all files"}';
 
@@ -570,7 +597,8 @@ class FunctionControllerTest extends TestCase {
     /**
      * @runInSeparateProcess
      */
-    public function testScanUserFilesSuccess() {
+    public function testScanUserFilesSuccess()
+    {
         $user = 'testuser';
         $command = 'php /var/www/html/occ files:scan ' . $user;
         $expectedResponse = '{"success":true}';
@@ -587,13 +615,13 @@ class FunctionControllerTest extends TestCase {
 
         // Test scanning user files successfully
         $this->assertEquals(json_encode([$expectedResponse]), $result);
-
     }
 
     /**
-      * @runInSeparateProcess
-    */
-    public function testScanUserFilesFailure() {
+     * @runInSeparateProcess
+     */
+    public function testScanUserFilesFailure()
+    {
         $user = 'testuser';
         $command = 'php /var/www/html/occ files:scan ' . $user;
 
@@ -611,7 +639,6 @@ class FunctionControllerTest extends TestCase {
 
         // Test failing to scan user files
         $this->assertEquals(json_encode([$expectedResponse]), $result);
-
     }
 
     /**
@@ -692,7 +719,7 @@ class FunctionControllerTest extends TestCase {
 
         $this->assertEquals(json_encode(array($expectedResponse)), $result);
     }
-    
+
     public function testParseGroups()
     {
         $groups = [
@@ -828,7 +855,7 @@ class FunctionControllerTest extends TestCase {
         $reflectionMethod->setAccessible(true);
 
         $result = $reflectionMethod->invoke($this->api, $extStorages);
-        
+
         $expected = [
             '9' => [
                 'Mount ID' => '9',
@@ -907,12 +934,12 @@ class FunctionControllerTest extends TestCase {
                 'Applicable Groups' => ['empty'],
             ],
         ];
-        
+
         $this->assertEquals($expected, $result);
     }
 
 
-   
+
 
 
     /**
@@ -1130,7 +1157,7 @@ class FunctionControllerTest extends TestCase {
             'Content-Type' => 'application/json',
             'Accept' => 'application/json'
         ];
-    
+
         // Mock $_SERVER keys
         $_SERVER['REQUEST_METHOD'] = 'GET';
         $_SERVER['QUERY_STRING'] = 'key=value';
@@ -1140,14 +1167,145 @@ class FunctionControllerTest extends TestCase {
         $this->getFunctionMock(__NAMESPACE__, 'apache_request_headers')
             ->expects($this->once())
             ->willReturn($headers);
-    
+
         $reflectionClass = new \ReflectionClass($this->api);
         $reflectionMethod = $reflectionClass->getMethod('headers');
         $reflectionMethod->setAccessible(true);
-    
+
         $result = $reflectionMethod->invoke($this->api);
-    
+
         $this->assertEquals($headers, $result);
     }
 
+
+    /**
+     * @runInSeparateProcess
+     */
+    public function testGetFileSuccess()
+    {
+        $filePath = 'dummy_file.txt';
+        $command = "curl -s -X GET -k -u  \"https://localhost/remote.php/dav/files//" . ltrim($filePath, '/') . "\"";
+        $fileContent = "Hello world!";
+        $expectedResponse = json_encode(['content' => $fileContent]);
+
+        // Mock the exec() function
+        $this->expectExecCommand($command, $fileContent);
+
+        // Use ReflectionClass to access private methods
+        $reflectionClass = new \ReflectionClass($this->api);
+        $reflectionMethod = $reflectionClass->getMethod('getFile');
+        $reflectionMethod->setAccessible(true);
+
+        $result = $reflectionMethod->invokeArgs($this->api, array($filePath));
+
+        $this->assertEquals($expectedResponse, $result);
+    }
+
+
+    /**
+     * @runInSeparateProcess
+     */
+    public function testGetFileFailure()
+    {
+        $filePath = 'nonexistent_file.txt';
+        $command = "curl -s -X GET -k -u  \"https://localhost/remote.php/dav/files//" . ltrim($filePath, '/') . "\"";
+        $expectedResponse = json_encode(['content' => ""]);
+
+        // Mock the exec() function to simulate a failure
+        $this->expectExecCommand($command, null);
+
+        // Use ReflectionClass to access private methods
+        $reflectionClass = new \ReflectionClass($this->api);
+        $reflectionMethod = $reflectionClass->getMethod('getFile');
+        $reflectionMethod->setAccessible(true);
+
+        $result = $reflectionMethod->invokeArgs($this->api, array($filePath));
+
+        $this->assertEquals($expectedResponse, $result);
+    }
+    /**
+     * @runInSeparateProcess
+     */
+    public function testScanDirectoryFilesSuccess()
+    {
+        $dir = 'sample_directory';
+        $command = "curl -X PROPFIND -H \"Depth: 1\" -H \"Content-Type: application/xml\" -k -u " .
+            " -d '<?xml version=\"1.0\"?> " .
+            "<d:propfind xmlns:d=\"DAV:\" xmlns:oc=\"http://owncloud.org/ns\" xmlns:nc=\"http://nextcloud.org/ns\">" .
+            "<d:allprop />" .
+            "<d:prop>" .
+            "<oc:fileid />" .
+            "<oc:permissions />" .
+            "<oc:size />" .
+            "<oc:checksums />" .
+            "<oc:favorite />" .
+            "<nc:has-preview />" .
+            "<oc:tags />" .
+            "<oc:comments-href />" .
+            "<oc:comments-count />" .
+            "<oc:comments-unread />" .
+            "<oc:share-types />" .
+            "<oc:owner-display-name />" .
+            "<oc:quota-used-bytes />" .
+            "<oc:quota-available-bytes />" .
+            "</d:prop>" .
+            "</d:propfind>' " .
+            "\"https://localhost/remote.php/dav/files//" . ltrim($dir, '/') . "\"";
+        $expectedResponse = 'sample_response_data';  // You'll have to adjust this based on your expected output.
+
+        // Mock the exec() function to avoid side effects and increase code reproducibility
+        $this->expectExecCommand($command, $expectedResponse);
+
+        // Use ReflectionClass to access private methods
+        $reflectionClass = new \ReflectionClass($this->api);
+        $reflectionMethod = $reflectionClass->getMethod('scanDirectoryFiles');
+        $reflectionMethod->setAccessible(true);
+
+        $result = $reflectionMethod->invokeArgs($this->api, array($dir));
+
+        // Test scanning directory files successfully
+        $this->assertEquals(json_encode([$expectedResponse]), $result);
+    }
+
+    /**
+     * @runInSeparateProcess
+     */
+    public function testScanDirectoryFilesFailure()
+    {
+        $dir = 'sample_directory';
+        $command = "curl -X PROPFIND -H \"Depth: 1\" -H \"Content-Type: application/xml\" -k -u " .
+            " -d '<?xml version=\"1.0\"?> " .
+            "<d:propfind xmlns:d=\"DAV:\" xmlns:oc=\"http://owncloud.org/ns\" xmlns:nc=\"http://nextcloud.org/ns\">" .
+            "<d:allprop />" .
+            "<d:prop>" .
+            "<oc:fileid />" .
+            "<oc:permissions />" .
+            "<oc:size />" .
+            "<oc:checksums />" .
+            "<oc:favorite />" .
+            "<nc:has-preview />" .
+            "<oc:tags />" .
+            "<oc:comments-href />" .
+            "<oc:comments-count />" .
+            "<oc:comments-unread />" .
+            "<oc:share-types />" .
+            "<oc:owner-display-name />" .
+            "<oc:quota-used-bytes />" .
+            "<oc:quota-available-bytes />" .
+            "</d:prop>" .
+            "</d:propfind>' " .
+            "\"https://localhost/remote.php/dav/files//" . ltrim($dir, '/') . "\"";
+        $expectedResponse = '{"error":"Failed to scan directory"}';
+
+        $this->expectExecCommand($command, $expectedResponse);
+
+        // Use ReflectionClass toƒ access private methods
+        $reflectionClass = new \ReflectionClass($this->api);
+        $reflectionMethod = $reflectionClass->getMethod('scanDirectoryFiles');
+        $reflectionMethod->setAccessible(true);
+
+        $result = $reflectionMethod->invokeArgs($this->api, array($dir));
+
+        $this->assertEquals(json_encode([$expectedResponse]), $result);
+    }
 }
