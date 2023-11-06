@@ -135,6 +135,7 @@ class FunctionController extends \NamespaceBase\BaseController
      * PUT
      * - files/scan
      * - files/scan/{user}
+     * - files/file/{path to file}
      * POST
      * - files/file/{path to dir}
      * GET
@@ -188,7 +189,28 @@ class FunctionController extends \NamespaceBase\BaseController
             }
         } elseif ($requestMethod == "PUT") {
             // PUT method
-            if ($arrQueryUri[4] == "userpermissions") {
+            if ($arrQueryUri[4] == "file") {
+                // "/genapi.php/files/file/{full path to file}" Endpoint - updates file
+                $destinationPath = $arrQueryUri[5] ?? '';
+                for ($i = 6; $i < count($arrQueryUri); $i++) {
+                    $destinationPath .= "/" . ($arrQueryUri[$i] ?? '');
+                }
+
+                // Read the PUT input data and write it to a temporary file
+                $putData = fopen("php://input", "r");
+                $tempFilePath = tempnam(sys_get_temp_dir(), 'PUT_');
+                $tempFile = fopen($tempFilePath, "w");
+                stream_copy_to_stream($putData, $tempFile);
+
+                // Close the streams
+                fclose($tempFile);
+                fclose($putData);
+
+                $this->putFile($tempFilePath, $destinationPath);
+
+                // After the operation, delete the temporary file
+                unlink($tempFilePath);
+            } elseif ($arrQueryUri[4] == "userpermissions") {
                 // "/genapi.php/files/userpermissions/{user}/{permissions}/{directory}" Endpoint - Modify user permissions on directory
                 $user = $arrQueryUri[5];
                 $perm = $arrQueryUri[6];
@@ -341,6 +363,39 @@ class FunctionController extends \NamespaceBase\BaseController
         } else {
             $this->sendError500Output("File upload failed!");
             return null;
+        }
+    }
+
+    /**
+     * "PUT /files/file/{path to file}" Endpoint - updates existing file
+     */
+    private function putFile($localFilePath, $destinationPath)
+    {
+        if (!$localFilePath || !file_exists($localFilePath)) {
+            $error = "Local file path invalid or file does not exist!";
+            $this->sendError500Output($error);
+            return;
+        }
+
+        $fullDestinationPath = rtrim($destinationPath, '/');
+
+        $credentials = self::$oar_api_login;
+
+        $url = "https://localhost/remote.php/dav/files/oar_api/" . ltrim($fullDestinationPath, '/');
+
+        $command = "curl -X PUT -k -u " . escapeshellarg($credentials) .
+            " --data-binary @" . escapeshellarg($localFilePath) .
+            " " . escapeshellarg($url) . " 2>&1";
+
+        exec($command, $output, $return_var);
+
+
+        if ($return_var === 0) {
+            $responseData = json_encode(['content' => $output]);
+            $this->sendOkayOutput($responseData);
+        } else {
+            $errorOutput = implode("\n", $output);
+            $this->sendError500Output("File update failed! Error: " . $errorOutput);
         }
     }
 
