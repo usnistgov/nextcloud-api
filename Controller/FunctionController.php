@@ -274,6 +274,13 @@ class FunctionController extends \NamespaceBase\BaseController
                     $dir .= "/" . $arrQueryUri[$i];
                 }
                 $this->deleteUserPermissions($user, $dir);
+            } elseif ($arrQueryUri[4] == "file") {
+                // "/genapi.php/files/file/{file path}" Endpoint - Delete file
+                $filepath = $arrQueryUri[5];
+                for ($i = 6; $i < count($arrQueryUri); $i++) {
+                    $filepath .= "/" . $arrQueryUri[$i];
+                }
+                $this->deleteFile($filepath);
             }
             // unsupported method
         } else {
@@ -285,10 +292,27 @@ class FunctionController extends \NamespaceBase\BaseController
     }
 
     /**
-     * "-X DELETE /files/deletefile/{file path}" Endpoint - deletes file TODO
+     * "-X DELETE /files/file/{file path}" Endpoint - deletes file
      */
-    private function deleteFile($file)
+    private function deleteFile($filePath)
     {
+        $command = "curl -s -X DELETE -k -u " .
+            self::$oar_api_login .
+            " \"https://localhost/remote.php/dav/files/" . self::$oar_api_usr . "/" . ltrim($filePath, '/') . "\"";
+
+        $output = null;
+        $returnVar = null;
+
+        exec($command, $output, $returnVar);
+
+        if ($returnVar === 0) {
+            $responseData = json_encode($output);
+            $this->sendOkayOutput($responseData);
+            return $responseData;
+        } else {
+            $this->sendError500Output('Failed to delete the file.');
+            return null;
+        }
     }
 
     /**
