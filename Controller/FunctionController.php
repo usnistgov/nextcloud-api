@@ -330,28 +330,59 @@ class FunctionController extends \NamespaceBase\BaseController
     }
 
     /**
-     * "-X GET /files/file/{file path}" Endpoint - gets textual file content
+     * "-X GET /files/file/{file path}" Endpoint - gets file content (if textual) and metadata
      */
     private function getFile($filePath)
     {
-        $command = "curl -s -X GET -k -u " .
+        // Fetch file metadata
+        $metadataCommand = "curl -s -X PROPFIND -k -u " .
+            self::$oar_api_login .
+            " -H \"Depth: 0\" \"https://localhost/remote.php/dav/files/" . self::$oar_api_usr . "/" . ltrim($filePath, '/') . "\"";
+
+        $mdOutput = null;
+        $mdReturnVar = null;
+
+        // Execute metadata command
+        exec($metadataCommand, $mdOutput, $mdReturnVar);
+
+        $metadata = implode("\n", $mdOutput);
+
+        // Check if file exists
+        if (strpos($metadata, '<s:exception>Sabre\\DAV\\Exception\\NotFound</s:exception>') !== false) {
+            $this->sendError404Output('File not found.');
+            return null;
+        }    
+
+        if ($mdReturnVar !== 0) {
+            $this->sendError500Output('Failed to retrieve the file metadata.');
+            return null;
+        }
+
+        // Fetch file content
+        $contentCommand = "curl -s -X GET -k -u " .
             self::$oar_api_login .
             " \"https://localhost/remote.php/dav/files/" . self::$oar_api_usr . "/" . ltrim($filePath, '/') . "\"";
 
         $output = null;
         $returnVar = null;
 
-        exec($command, $output, $returnVar);
+        // Execute content command
+        exec($contentCommand, $output, $returnVar);
 
-        if ($returnVar === 0) {
-            $fileContent = implode("\n", $output);
-            $responseData = json_encode(['content' => $fileContent]);
-            $this->sendOkayOutput($responseData);
-            return $responseData;
-        } else {
-            $this->sendError500Output('Failed to retrieve the file.');
-            return null;
+        $fileContent = implode("\n", $output);
+
+        // Set fileContent to empty if it's non-textual or failed to fetch
+        if ($returnVar !== 0 || !preg_match('/\A[\r\n\t[:print:]]*\z/', $fileContent)) {
+            $fileContent = '';
         }
+
+        $responseData = json_encode([
+            'metadata' => $metadata,
+            'content' => $fileContent
+        ]);
+
+        $this->sendOkayOutput($responseData);
+        return $responseData;
     }
 
     /**
