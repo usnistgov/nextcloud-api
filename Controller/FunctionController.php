@@ -358,27 +358,8 @@ class FunctionController extends \NamespaceBase\BaseController
             return null;
         }
 
-        // Fetch file content
-        $contentCommand = "curl -s -X GET -k -u " .
-            self::$oar_api_login .
-            " \"https://localhost/remote.php/dav/files/" . self::$oar_api_usr . "/" . ltrim($filePath, '/') . "\"";
-
-        $output = null;
-        $returnVar = null;
-
-        // Execute content command
-        exec($contentCommand, $output, $returnVar);
-
-        $fileContent = implode("\n", $output);
-
-        // Set fileContent to empty if it's non-textual or failed to fetch
-        if ($returnVar !== 0 || !preg_match('/\A[\r\n\t[:print:]]*\z/', $fileContent)) {
-            $fileContent = '';
-        }
-
         $responseData = json_encode([
             'metadata' => $metadata,
-            'content' => $fileContent
         ]);
 
         $this->sendOkayOutput($responseData);
@@ -475,7 +456,6 @@ class FunctionController extends \NamespaceBase\BaseController
     /**
      * "-X GET /files/directory/{directory name}" Endpoint - get directory info
      */
-    #TODO
     private function getDirectory($dir)
     {
         $command =
