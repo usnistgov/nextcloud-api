@@ -135,6 +135,11 @@ class FunctionController extends \NamespaceBase\BaseController
      * PUT
      * - files/scan
      * - files/scan/{user}
+     * - files/file/{path to file}
+     * POST
+     * - files/file/{path to dir}
+     * GET
+     * - files/file/{path to file}
      */
     private function files()
     {
@@ -146,13 +151,16 @@ class FunctionController extends \NamespaceBase\BaseController
         if ($requestMethod == "POST") {
             // POST method
             if ($arrQueryUri[4] == "file") {
-                // "/genapi.php/files/file/{filename.extension} Endpoint - creates file
-                // Expects 'path' (directory path) and 'content' (file content) key-value pairs in payload
-                $payload = json_decode(file_get_contents('php://input'), true);
-                $file = $arrQueryUri[5];
-                $path = isset($payload['path']) ? $payload['path'] : ''; // Get the directory path from the payload
-                $content = isset($payload['content']) ? $payload['content'] : ''; // Get the content from the payload
-                $this->postFile($file, $path, $content);
+                // "/genapi.php/files/file/{path to destination directory (optional: default is oar_api root dir)} Endpoint - creates file
+                $destinationPath = isset($arrQueryUri[5]) ? $arrQueryUri[5] : '';
+                for ($i = 6; $i < count($arrQueryUri); $i++) {
+                    if (isset($arrQueryUri[$i])) {
+                        $destinationPath .= "/" . $arrQueryUri[$i];
+                    }
+                }
+                // Assuming the file is sent with a field name 'file'
+                $localFilePath = $_FILES['file']['tmp_name'] ?? null;
+                $this->postFile($localFilePath, $destinationPath);
             } elseif ($arrQueryUri[4] == "directory") {
                 // "/genapi.php/files/directory/{directory name}" Endpoint - creates directory
                 $dir = $arrQueryUri[5];
@@ -181,7 +189,28 @@ class FunctionController extends \NamespaceBase\BaseController
             }
         } elseif ($requestMethod == "PUT") {
             // PUT method
-            if ($arrQueryUri[4] == "userpermissions") {
+            if ($arrQueryUri[4] == "file") {
+                // "/genapi.php/files/file/{full path to file}" Endpoint - updates file
+                $destinationPath = $arrQueryUri[5] ?? '';
+                for ($i = 6; $i < count($arrQueryUri); $i++) {
+                    $destinationPath .= "/" . ($arrQueryUri[$i] ?? '');
+                }
+
+                // Read the PUT input data and write it to a temporary file
+                $putData = fopen("php://input", "r");
+                $tempFilePath = tempnam(sys_get_temp_dir(), 'PUT_');
+                $tempFile = fopen($tempFilePath, "w");
+                stream_copy_to_stream($putData, $tempFile);
+
+                // Close the streams
+                fclose($tempFile);
+                fclose($putData);
+
+                $this->putFile($tempFilePath, $destinationPath);
+
+                // After the operation, delete the temporary file
+                unlink($tempFilePath);
+            } elseif ($arrQueryUri[4] == "userpermissions") {
                 // "/genapi.php/files/userpermissions/{user}/{permissions}/{directory}" Endpoint - Modify user permissions on directory
                 $user = $arrQueryUri[5];
                 $perm = $arrQueryUri[6];
@@ -190,6 +219,13 @@ class FunctionController extends \NamespaceBase\BaseController
                     $dir .= "/" . $arrQueryUri[$i];
                 }
                 $this->putUserPermissions($user, $perm, $dir);
+            } elseif ($arrQueryUri[4] == "scan" && $arrQueryUri[5] == "directory") {
+                // "/genapi.php/files/scan/directory/{directory path}" Endpoint - scan directory's file system
+                $dir = $arrQueryUri[6];
+                for ($i = 7; $i < count($arrQueryUri); $i++) {
+                    $dir .= "/" . $arrQueryUri[$i];
+                }
+                $this->scanDirectoryFiles($dir);
             } elseif (count($arrQueryUri) == 5) {
                 // "/genapi.php/files/scan" Endpoint - scans all file systems
                 $this->scanAllFiles();
@@ -199,7 +235,14 @@ class FunctionController extends \NamespaceBase\BaseController
             }
         } elseif ($requestMethod == "GET") {
             // GET method
-            if ($arrQueryUri[4] == "directory") {
+            if ($arrQueryUri[4] == "file") {
+                // "/genapi.php/files/file/{file path}" Endpoint - get textual file content
+                $filepath = $arrQueryUri[5];
+                for ($i = 6; $i < count($arrQueryUri); $i++) {
+                    $filepath .= "/" . $arrQueryUri[$i];
+                }
+                $this->getFile($filepath);
+            } else if ($arrQueryUri[4] == "directory") {
                 // "/genapi.php/files/directory/{directory name}" Endpoint - get directory info
                 $dir = $arrQueryUri[5];
                 for ($i = 6; $i < count($arrQueryUri); $i++) {
@@ -231,6 +274,13 @@ class FunctionController extends \NamespaceBase\BaseController
                     $dir .= "/" . $arrQueryUri[$i];
                 }
                 $this->deleteUserPermissions($user, $dir);
+            } elseif ($arrQueryUri[4] == "file") {
+                // "/genapi.php/files/file/{file path}" Endpoint - Delete file
+                $filepath = $arrQueryUri[5];
+                for ($i = 6; $i < count($arrQueryUri); $i++) {
+                    $filepath .= "/" . $arrQueryUri[$i];
+                }
+                $this->deleteFile($filepath);
             }
             // unsupported method
         } else {
@@ -242,17 +292,27 @@ class FunctionController extends \NamespaceBase\BaseController
     }
 
     /**
-     * "-X POST /files/putfile/{file path}" Endpoint - uploads file TODO
+     * "-X DELETE /files/file/{file path}" Endpoint - deletes file
      */
-    private function putFile($file)
+    private function deleteFile($filePath)
     {
-    }
+        $command = "curl -s -X DELETE -k -u " .
+            self::$oar_api_login .
+            " \"https://localhost/remote.php/dav/files/" . self::$oar_api_usr . "/" . ltrim($filePath, '/') . "\"";
 
-    /**
-     * "-X DELETE /files/deletefile/{file path}" Endpoint - deletes file TODO
-     */
-    private function deleteFile($file)
-    {
+        $output = null;
+        $returnVar = null;
+
+        exec($command, $output, $returnVar);
+
+        if ($returnVar === 0) {
+            $responseData = json_encode($output);
+            $this->sendOkayOutput($responseData);
+            return $responseData;
+        } else {
+            $this->sendError500Output('Failed to delete the file.');
+            return null;
+        }
     }
 
     /**
@@ -270,29 +330,108 @@ class FunctionController extends \NamespaceBase\BaseController
     }
 
     /**
-     * "-X GET /files/getfile/{file path}" Endpoint - gets file TODO
+     * "-X GET /files/file/{file path}" Endpoint - gets file content (if textual) and metadata
      */
-    private function getFile($file)
+    private function getFile($filePath)
     {
+        // Fetch file metadata
+        $metadataCommand = "curl -s -X PROPFIND -k -u " .
+            self::$oar_api_login .
+            " -H \"Depth: 0\" \"https://localhost/remote.php/dav/files/" . self::$oar_api_usr . "/" . ltrim($filePath, '/') . "\"";
+
+        $mdOutput = null;
+        $mdReturnVar = null;
+
+        // Execute metadata command
+        exec($metadataCommand, $mdOutput, $mdReturnVar);
+
+        $metadata = implode("\n", $mdOutput);
+
+        // Check if file exists
+        if (strpos($metadata, '<s:exception>Sabre\\DAV\\Exception\\NotFound</s:exception>') !== false) {
+            $this->sendError404Output('File not found.');
+            return null;
+        }    
+
+        if ($mdReturnVar !== 0) {
+            $this->sendError500Output('Failed to retrieve the file metadata.');
+            return null;
+        }
+
+        $responseData = json_encode([
+            'metadata' => $metadata,
+        ]);
+
+        $this->sendOkayOutput($responseData);
+        return $responseData;
     }
 
     /**
-     * "-X POST /files/file/filename.extension Endpoint - creates file
+     * "-X POST /files/file/{ path to destination directory } Endpoint - creates file
      */
-    private function postFile($file, $path, $content)
+    private function postFile($localFilePath, $destinationPath)
     {
-        $fullPath = ($path ? rtrim($path, '/') . '/' : '') . ltrim($file, '/');
-        $command = "curl -X PUT -k -u " . 
-                escapeshellarg(self::$oar_api_login) . 
-                " --data-binary " . escapeshellarg($content) . 
-                " https://localhost/remote.php/dav/files/oar_api/" . 
-                $fullPath;
+        // Check if file was provided and uploaded without errors
+        if (!$localFilePath || !isset($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
+            $error = "File upload error!";
+            $this->sendError500Output($error);
+            return $error;
+        }
+        // Extract filename and extension from the local file path
+        $originalFilename = $_FILES['file']['name'];
+        $fileInfo = pathinfo($originalFilename);
+        $filenameWithExtension = $fileInfo['basename'];
 
-        if (exec($command, $arrUser)) {
-            $responseData = json_encode($arrUser);
+
+        // Construct the full destination path for the file on Nextcloud
+        $fullDestinationPath = ($destinationPath ? rtrim($destinationPath, '/') . '/' : '') . $filenameWithExtension;
+
+        $command = "curl -X PUT -k -u " . escapeshellarg(self::$oar_api_login) .
+            " --data-binary @" . escapeshellarg($localFilePath) .
+            " https://localhost/remote.php/dav/files/oar_api/" . $fullDestinationPath;
+
+        exec($command, $output, $return_var);
+
+        if ($return_var === 0) {
+            $responseData = json_encode($output);
             $this->sendOkayOutput($responseData);
-
             return $responseData;
+        } else {
+            $this->sendError500Output("File upload failed!");
+            return null;
+        }
+    }
+
+    /**
+     * "PUT /files/file/{path to file}" Endpoint - updates existing file
+     */
+    private function putFile($localFilePath, $destinationPath)
+    {
+        if (!$localFilePath || !file_exists($localFilePath)) {
+            $error = "Local file path invalid or file does not exist!";
+            $this->sendError500Output($error);
+            return;
+        }
+
+        $fullDestinationPath = rtrim($destinationPath, '/');
+
+        $credentials = self::$oar_api_login;
+
+        $url = "https://localhost/remote.php/dav/files/oar_api/" . ltrim($fullDestinationPath, '/');
+
+        $command = "curl -X PUT -k -u " . escapeshellarg($credentials) .
+            " --data-binary @" . escapeshellarg($localFilePath) .
+            " " . escapeshellarg($url) . " 2>&1";
+
+        exec($command, $output, $return_var);
+
+
+        if ($return_var === 0) {
+            $responseData = json_encode(['content' => $output]);
+            $this->sendOkayOutput($responseData);
+        } else {
+            $errorOutput = implode("\n", $output);
+            $this->sendError500Output("File update failed! Error: " . $errorOutput);
         }
     }
 
@@ -317,7 +456,6 @@ class FunctionController extends \NamespaceBase\BaseController
     /**
      * "-X GET /files/directory/{directory name}" Endpoint - get directory info
      */
-    #TODO
     private function getDirectory($dir)
     {
         $command =
@@ -380,6 +518,49 @@ class FunctionController extends \NamespaceBase\BaseController
             return $responseData;
         }
     }
+
+
+    /**
+     * "-X PUT /files/scan/directory/{directory path}" Endpoint - scan directory file system
+     */
+    private function scanDirectoryFiles($dir)
+    {
+        $command =
+            "curl -X PROPFIND -H \"Depth: 1\" -H \"Content-Type: application/xml\" -k -u " .
+            self::$oar_api_login .
+            " -d '<?xml version=\"1.0\"?> " .
+            "<d:propfind xmlns:d=\"DAV:\" xmlns:oc=\"http://owncloud.org/ns\" xmlns:nc=\"http://nextcloud.org/ns\">" .
+            "<d:allprop />" .
+            "<d:prop>" .
+            "<oc:fileid />" .
+            "<oc:permissions />" .
+            "<oc:size />" .
+            "<oc:checksums />" .
+            "<oc:favorite />" .
+            "<nc:has-preview />" .
+            "<oc:tags />" .
+            "<oc:comments-href />" .
+            "<oc:comments-count />" .
+            "<oc:comments-unread />" .
+            "<oc:share-types />" .
+            "<oc:owner-display-name />" .
+            "<oc:quota-used-bytes />" .
+            "<oc:quota-available-bytes />" .
+            "</d:prop>" .
+            "</d:propfind>' " .
+            "\"https://localhost/remote.php/dav/files/" . self::$oar_api_usr . "/" . ltrim($dir, '/') . "\"";
+
+        if (exec($command, $arrDir)) {
+            $responseData = json_encode($arrDir);
+            $this->sendOkayOutput($responseData);
+
+            return $responseData;
+        } else {
+            $this->sendError500Output("Failed to scan directory.");
+            return;
+        }
+    }
+
 
     /**
      * "-X POST /files/userpermissions/{user}/{permissions}/{directory}" Endpoint - share file/folder with user with permissions
@@ -474,7 +655,7 @@ class FunctionController extends \NamespaceBase\BaseController
             if (preg_match_all($idPattern, $data, $idMatches) && preg_match_all($userPattern, $data, $userMatches)) {
                 $shareIds = $idMatches[1];
                 $shareUsers = $userMatches[1];
-    
+
                 foreach ($shareIds as $index => $shareId) {
                     if (isset($shareUsers[$index]) && $shareUsers[$index] == $user) {
                         // Delete the share

@@ -18,7 +18,9 @@ class BaseController
 	 */
 	protected function getUri()
 	{
-		return parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+        $requestUri = $_SERVER['REQUEST_URI'];
+        $path = $this->extractPathFromRequestUri($requestUri);
+        return $path;	
 	}
 
 	/**
@@ -28,11 +30,24 @@ class BaseController
 	 */
 	protected function getUriSegments()
 	{
-		$uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-		$uri = explode('/', $uri);
-
-		return $uri;
+		$requestUri = $_SERVER['REQUEST_URI'];
+        $path = $this->extractPathFromRequestUri($requestUri);
+        $segments = explode('/', $path);
+        return $segments;
 	}
+
+	/**
+     * Extract the path from the request URI.
+     *
+     * @param string $requestUri The request URI.
+     * @return string The extracted path.
+     */
+    protected function extractPathFromRequestUri($requestUri)
+    {
+        // Check for query string and remove it if present
+        $path = explode('?', $requestUri)[0];
+        return $path;
+    }
 
 	/**
 	 * Get querystring params
