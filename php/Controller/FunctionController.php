@@ -298,7 +298,7 @@ class FunctionController extends \NamespaceBase\BaseController
     {
         $command = "curl -s -X DELETE -k -u " .
             self::$oar_api_login .
-            " \"https://localhost/remote.php/dav/files/" . self::$oar_api_usr . "/" . ltrim($filePath, '/') . "\"";
+            " \"http://localhost/remote.php/dav/files/" . self::$oar_api_usr . "/" . ltrim($filePath, '/') . "\"";
 
         $output = null;
         $returnVar = null;
@@ -337,7 +337,7 @@ class FunctionController extends \NamespaceBase\BaseController
         // Fetch file metadata
         $metadataCommand = "curl -s -X PROPFIND -k -u " .
             self::$oar_api_login .
-            " -H \"Depth: 0\" \"https://localhost/remote.php/dav/files/" . self::$oar_api_usr . "/" . ltrim($filePath, '/') . "\"";
+            " -H \"Depth: 0\" \"http://localhost/remote.php/dav/files/" . self::$oar_api_usr . "/" . ltrim($filePath, '/') . "\"";
 
         $mdOutput = null;
         $mdReturnVar = null;
@@ -388,7 +388,7 @@ class FunctionController extends \NamespaceBase\BaseController
 
         $command = "curl -X PUT -k -u " . escapeshellarg(self::$oar_api_login) .
             " --data-binary @" . escapeshellarg($localFilePath) .
-            " https://localhost/remote.php/dav/files/oar_api/" . $fullDestinationPath;
+            " http://localhost/remote.php/dav/files/oar_api/" . $fullDestinationPath;
 
         exec($command, $output, $return_var);
 
@@ -417,7 +417,7 @@ class FunctionController extends \NamespaceBase\BaseController
 
         $credentials = self::$oar_api_login;
 
-        $url = "https://localhost/remote.php/dav/files/oar_api/" . ltrim($fullDestinationPath, '/');
+        $url = "http://localhost/remote.php/dav/files/oar_api/" . ltrim($fullDestinationPath, '/');
 
         $command = "curl -X PUT -k -u " . escapeshellarg($credentials) .
             " --data-binary @" . escapeshellarg($localFilePath) .
@@ -443,7 +443,7 @@ class FunctionController extends \NamespaceBase\BaseController
         $command =
             "curl -X MKCOL -k -u " .
             self::$oar_api_login .
-            " https://localhost/remote.php/dav/files/oar_api/" .
+            " http://localhost/remote.php/dav/files/oar_api/" .
             $dir;
         if (exec($command, $arrUser)) {
             $responseData = json_encode($arrUser);
@@ -461,7 +461,7 @@ class FunctionController extends \NamespaceBase\BaseController
         $command =
             "curl -X PROPFIND -k -u " .
             self::$oar_api_login .
-            " -H \"Depth: 0\" https://localhost/remote.php/dav/files/oar_api/" .
+            " -H \"Depth: 0\" http://localhost/remote.php/dav/files/oar_api/" .
             $dir;
         if (exec($command, $arrUser)) {
             $responseData = json_encode($arrUser);
@@ -480,7 +480,7 @@ class FunctionController extends \NamespaceBase\BaseController
         $command =
             "curl -X DELETE -k -u " .
             self::$oar_api_login .
-            " https://localhost/remote.php/dav/files/oar_api/" .
+            " http://localhost/remote.php/dav/files/oar_api/" .
             $dir;
         if (exec($command, $arrUser)) {
             $responseData = json_encode($arrUser);
@@ -548,7 +548,7 @@ class FunctionController extends \NamespaceBase\BaseController
             "<oc:quota-available-bytes />" .
             "</d:prop>" .
             "</d:propfind>' " .
-            "\"https://localhost/remote.php/dav/files/" . self::$oar_api_usr . "/" . ltrim($dir, '/') . "\"";
+            "\"http://localhost/remote.php/dav/files/" . self::$oar_api_usr . "/" . ltrim($dir, '/') . "\"";
 
         if (exec($command, $arrDir)) {
             $responseData = json_encode($arrDir);
@@ -570,7 +570,7 @@ class FunctionController extends \NamespaceBase\BaseController
         $command =
             "curl -X POST -H \"ocs-apirequest:true\" -k -u " .
             self::$oar_api_login .
-            " \"https://localhost/ocs/v2.php/apps/files_sharing/api/v1/shares?shareType=0" .
+            " \"http://localhost/ocs/v2.php/apps/files_sharing/api/v1/shares?shareType=0" .
             "&path=" .
             $dir .
             "&shareWith=" .
@@ -594,7 +594,7 @@ class FunctionController extends \NamespaceBase\BaseController
         $command =
             "curl -X GET -H \"OCS-APIRequest: true\" -k -u " .
             self::$oar_api_login .
-            " 'https://localhost/ocs/v2.php/apps/files_sharing/api/v1/shares?path=/" .
+            " 'http://localhost/ocs/v2.php/apps/files_sharing/api/v1/shares?path=/" .
             $dir .
             "&reshares=true'";
 
@@ -641,7 +641,7 @@ class FunctionController extends \NamespaceBase\BaseController
         $command =
             "curl -X GET -H \"OCS-APIRequest: true\" -k -u " .
             self::$oar_api_login .
-            " 'https://localhost/ocs/v2.php/apps/files_sharing/api/v1/shares?path=/" .
+            " 'http://localhost/ocs/v2.php/apps/files_sharing/api/v1/shares?path=/" .
             $dir .
             "&reshares=true'";
 
@@ -662,7 +662,7 @@ class FunctionController extends \NamespaceBase\BaseController
                         $deleteCommand =
                             "curl -X DELETE -H \"OCS-APIRequest: true\" -k -u " .
                             self::$oar_api_login .
-                            " 'https://localhost/ocs/v2.php/apps/files_sharing/api/v1/shares/" .
+                            " 'http://localhost/ocs/v2.php/apps/files_sharing/api/v1/shares/" .
                             $shareId .
                             "'";
 
@@ -693,7 +693,7 @@ class FunctionController extends \NamespaceBase\BaseController
         $command =
             "curl -X POST -H \"ocs-apirequest:true\" -k -u " .
             self::$oar_api_login .
-            " \"https://localhost/ocs/v2.php/apps/files_sharing/api/v1/shares?shareType=1" .
+            " \"http://localhost/ocs/v2.php/apps/files_sharing/api/v1/shares?shareType=1" .
             "&path=" .
             $dir .
             "&shareWith=" .
