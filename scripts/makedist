@@ -51,7 +51,6 @@ execdir=`realpath $execdir`
 PACKAGE_DIR=`dirname $execdir`
 SOURCE_DIR=$PACKAGE_DIR/php
 DIST_DIR=$PACKAGE_DIR/dist
-BUILD_DIR=$SOURCE_DIR/dist
 VERSION=
 
 
@@ -113,7 +112,7 @@ while [ "$1" != "" ]; do
 done
 
 true ${DIST_DIR:=$PACKAGE_DIR/dist}
-BUILD_DIR=$SOURCE_DIR/dist
+BUILD_DIR=$SOURCE_DIR/build
 mkdir -p $BUILD_DIR $DIST_DIR
 
 
@@ -145,7 +144,7 @@ installdir=$BUILD_DIR/nextcloud-api
 set -x
 mkdir -p $installdir
 
-cp -r $PACKAGE_DIR/php/* $BUILD_DIR/*
+cp -r $PACKAGE_DIR/php/* $BUILD_DIR
 
 # ENTER COMMANDS for creating the dependency file(s)
 #
