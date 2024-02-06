@@ -32,6 +32,9 @@ class FunctionController extends \NamespaceBase\BaseController
     private static $oar_api_usr = "";
     private static $oar_api_pwd = "";
 
+    // Base URL
+    private static $nextcloud_base = "";
+
     // db credentials
     private static $dbhost = "";
     private static $dbuser = "";
@@ -51,6 +54,7 @@ class FunctionController extends \NamespaceBase\BaseController
         self::$dbuser = $config["mariadb_user"];
         self::$dbpass = $config["mariadb_password"];
         self::$dbname = $config["mariadb_database"];
+        self::$nextcloud_base = $config["nextcloud_base"];
         list(self::$oar_api_usr, self::$oar_api_pwd) = explode(
             ":",
             self::$oar_api_login
@@ -298,7 +302,7 @@ class FunctionController extends \NamespaceBase\BaseController
     {
         $command = "curl -s -X DELETE -k -u " .
             self::$oar_api_login .
-            " \"http://localhost/remote.php/dav/files/" . self::$oar_api_usr . "/" . ltrim($filePath, '/') . "\"";
+            " \"" . self::$nextcloud_base . "/remote.php/dav/files/" . self::$oar_api_usr . "/" . ltrim($filePath, '/') . "\"";
 
         $output = null;
         $returnVar = null;
@@ -337,7 +341,9 @@ class FunctionController extends \NamespaceBase\BaseController
         // Fetch file metadata
         $metadataCommand = "curl -s -X PROPFIND -k -u " .
             self::$oar_api_login .
-            " -H \"Depth: 0\" \"http://localhost/remote.php/dav/files/" . self::$oar_api_usr . "/" . ltrim($filePath, '/') . "\"";
+            " -H \"Depth: 0\" \"" . 
+            self::$nextcloud_base . 
+            "/remote.php/dav/files/" . self::$oar_api_usr . "/" . ltrim($filePath, '/') . "\"";
 
         $mdOutput = null;
         $mdReturnVar = null;
@@ -388,7 +394,7 @@ class FunctionController extends \NamespaceBase\BaseController
 
         $command = "curl -X PUT -k -u " . escapeshellarg(self::$oar_api_login) .
             " --data-binary @" . escapeshellarg($localFilePath) .
-            " http://localhost/remote.php/dav/files/oar_api/" . $fullDestinationPath;
+            " " . self::$nextcloud_base . "/remote.php/dav/files/oar_api/" . $fullDestinationPath;
 
         exec($command, $output, $return_var);
 
@@ -417,7 +423,7 @@ class FunctionController extends \NamespaceBase\BaseController
 
         $credentials = self::$oar_api_login;
 
-        $url = "http://localhost/remote.php/dav/files/oar_api/" . ltrim($fullDestinationPath, '/');
+        $url = self::$nextcloud_base . "/remote.php/dav/files/oar_api/" . ltrim($fullDestinationPath, '/');
 
         $command = "curl -X PUT -k -u " . escapeshellarg($credentials) .
             " --data-binary @" . escapeshellarg($localFilePath) .
@@ -443,7 +449,7 @@ class FunctionController extends \NamespaceBase\BaseController
         $command =
             "curl -X MKCOL -k -u " .
             self::$oar_api_login .
-            " http://localhost/remote.php/dav/files/oar_api/" .
+            " " . self::$nextcloud_base . "/remote.php/dav/files/oar_api/" .
             $dir;
         if (exec($command, $arrUser)) {
             $responseData = json_encode($arrUser);
@@ -461,7 +467,7 @@ class FunctionController extends \NamespaceBase\BaseController
         $command =
             "curl -X PROPFIND -k -u " .
             self::$oar_api_login .
-            " -H \"Depth: 0\" http://localhost/remote.php/dav/files/oar_api/" .
+            " -H \"Depth: 0\" " . self::$nextcloud_base . "/remote.php/dav/files/oar_api/" .
             $dir;
         if (exec($command, $arrUser)) {
             $responseData = json_encode($arrUser);
@@ -480,7 +486,7 @@ class FunctionController extends \NamespaceBase\BaseController
         $command =
             "curl -X DELETE -k -u " .
             self::$oar_api_login .
-            " http://localhost/remote.php/dav/files/oar_api/" .
+            " " . self::$nextcloud_base . "/remote.php/dav/files/oar_api/" .
             $dir;
         if (exec($command, $arrUser)) {
             $responseData = json_encode($arrUser);
@@ -548,7 +554,7 @@ class FunctionController extends \NamespaceBase\BaseController
             "<oc:quota-available-bytes />" .
             "</d:prop>" .
             "</d:propfind>' " .
-            "\"http://localhost/remote.php/dav/files/" . self::$oar_api_usr . "/" . ltrim($dir, '/') . "\"";
+            "\"" . self::$nextcloud_base . "/remote.php/dav/files/" . self::$oar_api_usr . "/" . ltrim($dir, '/') . "\"";
 
         if (exec($command, $arrDir)) {
             $responseData = json_encode($arrDir);
@@ -570,7 +576,7 @@ class FunctionController extends \NamespaceBase\BaseController
         $command =
             "curl -X POST -H \"ocs-apirequest:true\" -k -u " .
             self::$oar_api_login .
-            " \"http://localhost/ocs/v2.php/apps/files_sharing/api/v1/shares?shareType=0" .
+            " \"" . self::$nextcloud_base . "/ocs/v2.php/apps/files_sharing/api/v1/shares?shareType=0" .
             "&path=" .
             $dir .
             "&shareWith=" .
@@ -594,7 +600,7 @@ class FunctionController extends \NamespaceBase\BaseController
         $command =
             "curl -X GET -H \"OCS-APIRequest: true\" -k -u " .
             self::$oar_api_login .
-            " 'http://localhost/ocs/v2.php/apps/files_sharing/api/v1/shares?path=/" .
+            " '" . self::$nextcloud_base . "/ocs/v2.php/apps/files_sharing/api/v1/shares?path=/" .
             $dir .
             "&reshares=true'";
 
@@ -641,7 +647,7 @@ class FunctionController extends \NamespaceBase\BaseController
         $command =
             "curl -X GET -H \"OCS-APIRequest: true\" -k -u " .
             self::$oar_api_login .
-            " 'http://localhost/ocs/v2.php/apps/files_sharing/api/v1/shares?path=/" .
+            " '" . self::$nextcloud_base . "/ocs/v2.php/apps/files_sharing/api/v1/shares?path=/" .
             $dir .
             "&reshares=true'";
 
@@ -662,7 +668,7 @@ class FunctionController extends \NamespaceBase\BaseController
                         $deleteCommand =
                             "curl -X DELETE -H \"OCS-APIRequest: true\" -k -u " .
                             self::$oar_api_login .
-                            " 'http://localhost/ocs/v2.php/apps/files_sharing/api/v1/shares/" .
+                            " '" . self::$nextcloud_base . "/ocs/v2.php/apps/files_sharing/api/v1/shares/" .
                             $shareId .
                             "'";
 
@@ -693,7 +699,7 @@ class FunctionController extends \NamespaceBase\BaseController
         $command =
             "curl -X POST -H \"ocs-apirequest:true\" -k -u " .
             self::$oar_api_login .
-            " \"http://localhost/ocs/v2.php/apps/files_sharing/api/v1/shares?shareType=1" .
+            " \"" . self::$nextcloud_base . "/ocs/v2.php/apps/files_sharing/api/v1/shares?shareType=1" .
             "&path=" .
             $dir .
             "&shareWith=" .
