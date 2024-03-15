@@ -5,6 +5,42 @@ namespace NamespaceBase;
 
 class BaseController
 {
+
+	protected static $occ = "php /var/www/html/occ";
+	protected static $oar_api_login = "";
+	protected static $oar_api_usr = "";
+	protected static $oar_api_pwd = "";
+	protected static $nextcloud_base = "";
+	protected static $dbhost = "";
+	protected static $dbuser = "";
+	protected static $dbpass = "";
+	protected static $dbname = "";
+
+	public function __construct()
+	{
+		$this->loadConfiguration();
+	}
+
+	protected function loadConfiguration()
+	{
+		$configFilePath = __DIR__ . '/../config/custom_config.php';
+		if (!file_exists($configFilePath)) {
+			$this->sendError500Output("Config file not found: {$configFilePath}");
+			return;
+		}
+
+		$config = require $configFilePath;
+
+		self::$oar_api_login = $config['user_pass'];
+		self::$dbhost = $config['db_host'];
+		self::$dbuser = $config['mariadb_user'];
+		self::$dbpass = $config['mariadb_password'];
+		self::$dbname = $config['mariadb_database'];
+		self::$nextcloud_base = $config['nextcloud_base'];
+		list(self::$oar_api_usr, self::$oar_api_pwd) = explode(':', self::$oar_api_login);
+	}
+
+
 	/**
 	 * __call magic method
 	 */
@@ -18,9 +54,9 @@ class BaseController
 	 */
 	protected function getUri()
 	{
-        $requestUri = $_SERVER['REQUEST_URI'];
-        $path = $this->extractPathFromRequestUri($requestUri);
-        return $path;	
+		$requestUri = $_SERVER['REQUEST_URI'];
+		$path = $this->extractPathFromRequestUri($requestUri);
+		return $path;
 	}
 
 	/**
@@ -31,23 +67,23 @@ class BaseController
 	protected function getUriSegments()
 	{
 		$requestUri = $_SERVER['REQUEST_URI'];
-        $path = $this->extractPathFromRequestUri($requestUri);
-        $segments = explode('/', $path);
-        return $segments;
+		$path = $this->extractPathFromRequestUri($requestUri);
+		$segments = explode('/', $path);
+		return $segments;
 	}
 
 	/**
-     * Extract the path from the request URI.
-     *
-     * @param string $requestUri The request URI.
-     * @return string The extracted path.
-     */
-    protected function extractPathFromRequestUri($requestUri)
-    {
-        // Check for query string and remove it if present
-        $path = explode('?', $requestUri)[0];
-        return $path;
-    }
+	 * Extract the path from the request URI.
+	 *
+	 * @param string $requestUri The request URI.
+	 * @return string The extracted path.
+	 */
+	protected function extractPathFromRequestUri($requestUri)
+	{
+		// Check for query string and remove it if present
+		$path = explode('?', $requestUri)[0];
+		return $path;
+	}
 
 	/**
 	 * Get querystring params

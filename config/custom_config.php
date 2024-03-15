@@ -5,5 +5,6 @@ return [
     'mariadb_user' => 'admin',
     'mariadb_password' => 'dbpass1234',
     'mariadb_database' => 'nextcloud',
+    'nextcloud_base' => 'http://localhost',
     ];
 ?>

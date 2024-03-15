@@ -70,7 +70,7 @@ class UsersController extends \NamespaceBase\BaseController
      */
     private function getUsers()
     {
-        $command = self::$occ . " user:list -i --output json";
+        $command = parent::$occ . " user:list -i --output json";
         if (exec($command, $arrUser)) {
             $this->sendOkayOutput($arrUser[0]);
             return $arrUser[0];
@@ -82,7 +82,7 @@ class UsersController extends \NamespaceBase\BaseController
      */
     private function getUser($user)
     {
-        $command = self::$occ . " user:info " . $user . " --output json";
+        $command = parent::$occ . " user:info " . $user . " --output json";
         if (exec($command, $arrUser)) {
             $this->sendOkayOutput($arrUser[0]);
             return $arrUser[0];
@@ -94,7 +94,7 @@ class UsersController extends \NamespaceBase\BaseController
      */
     private function enableUser($user)
     {
-        $command = self::$occ . " user:enable " . $user;
+        $command = parent::$occ . " user:enable " . $user;
         if (exec($command, $arrUser)) {
             $responseData = json_encode($arrUser);
             $this->sendOkayOutput($responseData);
@@ -107,7 +107,7 @@ class UsersController extends \NamespaceBase\BaseController
      */
     private function disableUser($user)
     {
-        $command = self::$occ . " user:disable " . $user;
+        $command = parent::$occ . " user:disable " . $user;
         if (exec($command, $arrUser)) {
             $responseData = json_encode($arrUser);
 
@@ -123,10 +123,10 @@ class UsersController extends \NamespaceBase\BaseController
     {
         // create connection
         $db = new mysqli(
-            self::$dbhost,
-            self::$dbuser,
-            self::$dbpass,
-            self::$dbname
+            parent::$dbhost,
+            parent::$dbuser,
+            parent::$dbpass,
+            parent::$dbname
         );
         // check connection
         if ($db->connect_error) {
