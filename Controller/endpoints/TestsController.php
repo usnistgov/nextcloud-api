@@ -5,7 +5,7 @@ namespace NamespaceFunction;
 /**
  *"/test/" Endpoint - prints method with query uri
  */
-class TestController extends \NamespaceBase\BaseController
+class TestsController extends \NamespaceBase\BaseController
 {
     public function handle()
     {
