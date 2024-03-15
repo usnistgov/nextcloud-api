@@ -3,6 +3,12 @@
 namespace NamespaceFunction;
 
 require_once "BaseController.php";
+require_once "./endpoints/FilesController.php";
+require_once "ExtstoragesController.php";
+require_once "GroupsController.php";
+require_once "HeadersController.php";
+require_once "TestController.php";
+require_once "UsersController.php";
 
 use mysqli;
 
@@ -32,6 +38,9 @@ class FunctionController extends \NamespaceBase\BaseController
     private static $oar_api_usr = "";
     private static $oar_api_pwd = "";
 
+    // Base URL
+    private static $nextcloud_base = "";
+
     // db credentials
     private static $dbhost = "";
     private static $dbuser = "";
@@ -42,15 +51,23 @@ class FunctionController extends \NamespaceBase\BaseController
     {
         $configFilePath = __DIR__ . '/../config/custom_config.php';
         if (!file_exists($configFilePath)) {
-            throw new \RuntimeException("Config file not found: {$configFilePath}");
+            $this->sendError500Output("Config file not found: {$configFilePath}");
+            return;
         }
-        $config = require $configFilePath;
+
+        try {
+            $config = require $configFilePath;
+        } catch (\Exception $e) {
+            $this->sendErrorResponse($e->getMessage());
+            return;
+        }
 
         self::$oar_api_login = $config["user_pass"];
         self::$dbhost = $config["db_host"];
         self::$dbuser = $config["mariadb_user"];
         self::$dbpass = $config["mariadb_password"];
         self::$dbname = $config["mariadb_database"];
+        self::$nextcloud_base = $config["nextcloud_base"];
         list(self::$oar_api_usr, self::$oar_api_pwd) = explode(
             ":",
             self::$oar_api_login
@@ -72,43 +89,55 @@ class FunctionController extends \NamespaceBase\BaseController
         if (count($arrQueryUri) < 4) {
             // "Invalid endpoint"
             $strErrorDesc = $this->getUri() . " is not a valid endpoint";
-
             $this->sendError404Output($strErrorDesc);
-        } elseif (!$this->isAuthenticated()) {
+            return;
+        } 
+        if (!$this->isAuthenticated()) {
             $this->sendError401Output(
                 $_SERVER["PHP_AUTH_USER"] .
                     " is not authorized to access the API"
             );
-        } else {
-            $resource = strtoupper($arrQueryUri[3]);
+            return;
+        } 
 
-            if ($resource == "FILES") {
-                // "/genapi.php/files/" group of endpoints
-                $this->files();
-            } elseif ($resource == "USERS") {
-                // "/genapi.php/users/" group of endpoints
-                $this->users();
-            } elseif ($resource == "GROUPS") {
-                // "/genapi.php/groups/" group of endpoints
-                $this->groups();
-            } elseif ($resource == "EXTSTORAGES") {
-                // "/genapi.php/extstorages/" group of endpoints
-                $this->extStorages();
-            } elseif ($resource == "HEADERS") {
-                // "/genapi.php/headers/" Endpoint - prints headers from API call
-                $this->headers();
-            } elseif ($resource == "TEST") {
-                // "/genapi.php/test/" Endpoint - prints Method and URI
-                $this->test();
-            }
-            //Unavailable/unsupported resource
-            else {
-                $strErrorDesc = $resource . " is not an available resource";
+        $resource = strtoupper($arrQueryUri[3]);
 
-                $this->SendError404Output($strErrorDesc);
+        try {
+            switch ($resource) {
+                case "FILES":
+                    // "/genapi.php/files/" group of endpoints
+                    $filesController = new FilesController();
+                    $filesController->handle();
+                    break;
+                case "USERS":
+                    // "/genapi.php/users/" group of endpoints
+                    $this->users();
+                    break;
+                case "GROUPS":
+                    // "/genapi.php/groups/" group of endpoints
+                    $this->groups();
+                    break;
+                case "EXTSTORAGES":
+                    // "/genapi.php/extstorages/" group of endpoints
+                    $this->extStorages();
+                    break;
+                case "HEADERS":
+                    // "/genapi.php/headers/" Endpoint - prints headers from API call
+                    $this->headers();
+                    break;
+                case "TEST":
+                    // "/genapi.php/test/" Endpoint - prints Method and URI
+                    $this->test();
+                    break;
+                default:
+                    //Unavailable/unsupported resource
+                    $this->sendError404Output("{$resource} is not an available resource");
+                    break;
             }
-        }
+        } catch (\Exception $e) {
+            $this->send500ErrorResponse($e->getMessage());
     }
+}
 
     /**
      * Checks if the request is authenticated using Basic Authentication.
@@ -143,151 +172,154 @@ class FunctionController extends \NamespaceBase\BaseController
      */
     private function files()
     {
+        try {
         $strErrorDesc = "";
 
         $requestMethod = $this->getRequestMethod();
         $arrQueryUri = $this->getUriSegments();
 
-        if ($requestMethod == "POST") {
-            // POST method
-            if ($arrQueryUri[4] == "file") {
-                // "/genapi.php/files/file/{path to destination directory (optional: default is oar_api root dir)} Endpoint - creates file
-                $destinationPath = isset($arrQueryUri[5]) ? $arrQueryUri[5] : '';
-                for ($i = 6; $i < count($arrQueryUri); $i++) {
-                    if (isset($arrQueryUri[$i])) {
-                        $destinationPath .= "/" . $arrQueryUri[$i];
+        switch ($requestMethod) {
+            case "POST":
+                if ($arrQueryUri[4] == "file") {
+                    // "/genapi.php/files/file/{path to destination directory (optional: default is oar_api root dir)} Endpoint - creates file
+                    $destinationPath = isset($arrQueryUri[5]) ? $arrQueryUri[5] : '';
+                    for ($i = 6; $i < count($arrQueryUri); $i++) {
+                        if (isset($arrQueryUri[$i])) {
+                            $destinationPath .= "/" . $arrQueryUri[$i];
+                        }
                     }
+                    // Assuming the file is sent with a field name 'file'
+                    $localFilePath = $_FILES['file']['tmp_name'] ?? null;
+                    $this->postFile($localFilePath, $destinationPath);
+                } elseif ($arrQueryUri[4] == "directory") {
+                    // "/genapi.php/files/directory/{directory name}" Endpoint - creates directory
+                    $dir = $arrQueryUri[5];
+                    for ($i = 6; $i < count($arrQueryUri); $i++) {
+                        $dir .= "/" . $arrQueryUri[$i];
+                    }
+                    $this->postDirectory($dir);
+                } elseif ($arrQueryUri[4] == "userpermissions") {
+                    // "/genapi.php/files/userpermissions/{user}/{permissions}/{directory}" Endpoint - share directory with user with permissions
+                    $user = $arrQueryUri[5];
+                    $perm = $arrQueryUri[6];
+                    $dir = $arrQueryUri[7];
+                    for ($i = 8; $i < count($arrQueryUri); $i++) {
+                        $dir .= "/" . $arrQueryUri[$i];
+                    }
+                    $this->postUserPermissions($user, $perm, $dir);
+                } elseif ($arrQueryUri[4] == "sharegroup") {
+                    // "/genapi.php/files/sharegroup/{group}/{permissions}/{directory}" Endpoint - share directory with group with permissions
+                    $group = $arrQueryUri[5];
+                    $perm = $arrQueryUri[6];
+                    $dir = $arrQueryUri[7];
+                    for ($i = 8; $i < count($arrQueryUri); $i++) {
+                        $dir .= "/" . $arrQueryUri[$i];
+                    }
+                    $this->shareGroup($group, $perm, $dir);
                 }
-                // Assuming the file is sent with a field name 'file'
-                $localFilePath = $_FILES['file']['tmp_name'] ?? null;
-                $this->postFile($localFilePath, $destinationPath);
-            } elseif ($arrQueryUri[4] == "directory") {
-                // "/genapi.php/files/directory/{directory name}" Endpoint - creates directory
-                $dir = $arrQueryUri[5];
-                for ($i = 6; $i < count($arrQueryUri); $i++) {
-                    $dir .= "/" . $arrQueryUri[$i];
+                break;
+            case "PUT":
+                if ($arrQueryUri[4] == "file") {
+                    // "/genapi.php/files/file/{full path to file}" Endpoint - updates file
+                    $destinationPath = $arrQueryUri[5] ?? '';
+                    for ($i = 6; $i < count($arrQueryUri); $i++) {
+                        $destinationPath .= "/" . ($arrQueryUri[$i] ?? '');
+                    }
+
+                    // Read the PUT input data and write it to a temporary file
+                    $putData = fopen("php://input", "r");
+                    $tempFilePath = tempnam(sys_get_temp_dir(), 'PUT_');
+                    $tempFile = fopen($tempFilePath, "w");
+                    stream_copy_to_stream($putData, $tempFile);
+
+                    // Close the streams
+                    fclose($tempFile);
+                    fclose($putData);
+
+                    $this->putFile($tempFilePath, $destinationPath);
+
+                    // After the operation, delete the temporary file
+                    unlink($tempFilePath);
+                } elseif ($arrQueryUri[4] == "userpermissions") {
+                    // "/genapi.php/files/userpermissions/{user}/{permissions}/{directory}" Endpoint - Modify user permissions on directory
+                    $user = $arrQueryUri[5];
+                    $perm = $arrQueryUri[6];
+                    $dir = $arrQueryUri[7];
+                    for ($i = 8; $i < count($arrQueryUri); $i++) {
+                        $dir .= "/" . $arrQueryUri[$i];
+                    }
+                    $this->putUserPermissions($user, $perm, $dir);
+                } elseif ($arrQueryUri[4] == "scan" && $arrQueryUri[5] == "directory") {
+                    // "/genapi.php/files/scan/directory/{directory path}" Endpoint - scan directory's file system
+                    $dir = $arrQueryUri[6];
+                    for ($i = 7; $i < count($arrQueryUri); $i++) {
+                        $dir .= "/" . $arrQueryUri[$i];
+                    }
+                    $this->scanDirectoryFiles($dir);
+                } elseif (count($arrQueryUri) == 5) {
+                    // "/genapi.php/files/scan" Endpoint - scans all file systems
+                    $this->scanAllFiles();
+                } elseif (count($arrQueryUri) == 6) {
+                    // "/genapi.php/files/scan/{user}" Endpoint - scan user's file system
+                    $this->scanUserFiles($arrQueryUri[5]);
                 }
-                $this->postDirectory($dir);
-            } elseif ($arrQueryUri[4] == "userpermissions") {
-                // "/genapi.php/files/userpermissions/{user}/{permissions}/{directory}" Endpoint - share directory with user with permissions
-                $user = $arrQueryUri[5];
-                $perm = $arrQueryUri[6];
-                $dir = $arrQueryUri[7];
-                for ($i = 8; $i < count($arrQueryUri); $i++) {
-                    $dir .= "/" . $arrQueryUri[$i];
+                break;
+            case "GET":
+                if ($arrQueryUri[4] == "file") {
+                    // "/genapi.php/files/file/{file path}" Endpoint - get textual file content
+                    $filepath = $arrQueryUri[5];
+                    for ($i = 6; $i < count($arrQueryUri); $i++) {
+                        $filepath .= "/" . $arrQueryUri[$i];
+                    }
+                    $this->getFile($filepath);
+                } else if ($arrQueryUri[4] == "directory") {
+                    // "/genapi.php/files/directory/{directory name}" Endpoint - get directory info
+                    $dir = $arrQueryUri[5];
+                    for ($i = 6; $i < count($arrQueryUri); $i++) {
+                        $dir .= "/" . $arrQueryUri[$i];
+                    }
+                    $this->getDirectory($dir);
+                } elseif ($arrQueryUri[4] == "userpermissions") {
+                    // "/genapi.php/files/userpermissions/{directory}" Endpoint - Get users with permissions to directory
+                    $dir = $arrQueryUri[5];
+                    for ($i = 6; $i < count($arrQueryUri); $i++) {
+                        $dir .= "/" . $arrQueryUri[$i];
+                    }
+                    $this->getUserPermissions($dir);
                 }
-                $this->postUserPermissions($user, $perm, $dir);
-            } elseif ($arrQueryUri[4] == "sharegroup") {
-                // "/genapi.php/files/sharegroup/{group}/{permissions}/{directory}" Endpoint - share directory with group with permissions
-                $group = $arrQueryUri[5];
-                $perm = $arrQueryUri[6];
-                $dir = $arrQueryUri[7];
-                for ($i = 8; $i < count($arrQueryUri); $i++) {
-                    $dir .= "/" . $arrQueryUri[$i];
+                break;
+            case "DELETE":
+                if ($arrQueryUri[4] == "directory") {
+                    // "/genapi.php/files/directory/{directory name}" Endpoint - delete directory
+                    $dir = $arrQueryUri[5];
+                    for ($i = 6; $i < count($arrQueryUri); $i++) {
+                        $dir .= "/" . $arrQueryUri[$i];
+                    }
+                    $this->deleteDirectory($dir);
+                } elseif ($arrQueryUri[4] == "userpermissions") {
+                    // "/genapi.php/files/userpermissions/{user}/{directory}" Endpoint - Remove all user permissions to directory
+                    $user = $arrQueryUri[5];
+                    $dir = $arrQueryUri[6];
+                    for ($i = 7; $i < count($arrQueryUri); $i++) {
+                        $dir .= "/" . $arrQueryUri[$i];
+                    }
+                    $this->deleteUserPermissions($user, $dir);
+                } elseif ($arrQueryUri[4] == "file") {
+                    // "/genapi.php/files/file/{file path}" Endpoint - Delete file
+                    $filepath = $arrQueryUri[5];
+                    for ($i = 6; $i < count($arrQueryUri); $i++) {
+                        $filepath .= "/" . $arrQueryUri[$i];
+                    }
+                    $this->deleteFile($filepath);
                 }
-                $this->shareGroup($group, $perm, $dir);
+                break;
+            default:
+                $strErrorDesc = $requestMethod . " is not supported for files endpoint.";
+                $this->sendError405Output($strErrorDesc);
+                break;
             }
-        } elseif ($requestMethod == "PUT") {
-            // PUT method
-            if ($arrQueryUri[4] == "file") {
-                // "/genapi.php/files/file/{full path to file}" Endpoint - updates file
-                $destinationPath = $arrQueryUri[5] ?? '';
-                for ($i = 6; $i < count($arrQueryUri); $i++) {
-                    $destinationPath .= "/" . ($arrQueryUri[$i] ?? '');
-                }
-
-                // Read the PUT input data and write it to a temporary file
-                $putData = fopen("php://input", "r");
-                $tempFilePath = tempnam(sys_get_temp_dir(), 'PUT_');
-                $tempFile = fopen($tempFilePath, "w");
-                stream_copy_to_stream($putData, $tempFile);
-
-                // Close the streams
-                fclose($tempFile);
-                fclose($putData);
-
-                $this->putFile($tempFilePath, $destinationPath);
-
-                // After the operation, delete the temporary file
-                unlink($tempFilePath);
-            } elseif ($arrQueryUri[4] == "userpermissions") {
-                // "/genapi.php/files/userpermissions/{user}/{permissions}/{directory}" Endpoint - Modify user permissions on directory
-                $user = $arrQueryUri[5];
-                $perm = $arrQueryUri[6];
-                $dir = $arrQueryUri[7];
-                for ($i = 8; $i < count($arrQueryUri); $i++) {
-                    $dir .= "/" . $arrQueryUri[$i];
-                }
-                $this->putUserPermissions($user, $perm, $dir);
-            } elseif ($arrQueryUri[4] == "scan" && $arrQueryUri[5] == "directory") {
-                // "/genapi.php/files/scan/directory/{directory path}" Endpoint - scan directory's file system
-                $dir = $arrQueryUri[6];
-                for ($i = 7; $i < count($arrQueryUri); $i++) {
-                    $dir .= "/" . $arrQueryUri[$i];
-                }
-                $this->scanDirectoryFiles($dir);
-            } elseif (count($arrQueryUri) == 5) {
-                // "/genapi.php/files/scan" Endpoint - scans all file systems
-                $this->scanAllFiles();
-            } elseif (count($arrQueryUri) == 6) {
-                // "/genapi.php/files/scan/{user}" Endpoint - scan user's file system
-                $this->scanUserFiles($arrQueryUri[5]);
-            }
-        } elseif ($requestMethod == "GET") {
-            // GET method
-            if ($arrQueryUri[4] == "file") {
-                // "/genapi.php/files/file/{file path}" Endpoint - get textual file content
-                $filepath = $arrQueryUri[5];
-                for ($i = 6; $i < count($arrQueryUri); $i++) {
-                    $filepath .= "/" . $arrQueryUri[$i];
-                }
-                $this->getFile($filepath);
-            } else if ($arrQueryUri[4] == "directory") {
-                // "/genapi.php/files/directory/{directory name}" Endpoint - get directory info
-                $dir = $arrQueryUri[5];
-                for ($i = 6; $i < count($arrQueryUri); $i++) {
-                    $dir .= "/" . $arrQueryUri[$i];
-                }
-                $this->getDirectory($dir);
-            } elseif ($arrQueryUri[4] == "userpermissions") {
-                // "/genapi.php/files/userpermissions/{directory}" Endpoint - Get users with permissions to directory
-                $dir = $arrQueryUri[5];
-                for ($i = 6; $i < count($arrQueryUri); $i++) {
-                    $dir .= "/" . $arrQueryUri[$i];
-                }
-                $this->getUserPermissions($dir);
-            }
-        } elseif ($requestMethod == "DELETE") {
-            // DELETE method
-            if ($arrQueryUri[4] == "directory") {
-                // "/genapi.php/files/directory/{directory name}" Endpoint - delete directory
-                $dir = $arrQueryUri[5];
-                for ($i = 6; $i < count($arrQueryUri); $i++) {
-                    $dir .= "/" . $arrQueryUri[$i];
-                }
-                $this->deleteDirectory($dir);
-            } elseif ($arrQueryUri[4] == "userpermissions") {
-                // "/genapi.php/files/userpermissions/{user}/{directory}" Endpoint - Remove all user permissions to directory
-                $user = $arrQueryUri[5];
-                $dir = $arrQueryUri[6];
-                for ($i = 7; $i < count($arrQueryUri); $i++) {
-                    $dir .= "/" . $arrQueryUri[$i];
-                }
-                $this->deleteUserPermissions($user, $dir);
-            } elseif ($arrQueryUri[4] == "file") {
-                // "/genapi.php/files/file/{file path}" Endpoint - Delete file
-                $filepath = $arrQueryUri[5];
-                for ($i = 6; $i < count($arrQueryUri); $i++) {
-                    $filepath .= "/" . $arrQueryUri[$i];
-                }
-                $this->deleteFile($filepath);
-            }
-            // unsupported method
-        } else {
-            $strErrorDesc =
-                $requestMethod . " is not an available request Method";
-
-            $this->sendError405Output($strErrorDesc);
+        } catch (\Exception $e) {
+            $this->sendError400Output($e->getMessage());
         }
     }
 
@@ -296,9 +328,9 @@ class FunctionController extends \NamespaceBase\BaseController
      */
     private function deleteFile($filePath)
     {
-        $command = "curl -s -X DELETE -k -u " .
+        $command = "curl -s -X DELETE -u " .
             self::$oar_api_login .
-            " \"https://localhost/remote.php/dav/files/" . self::$oar_api_usr . "/" . ltrim($filePath, '/') . "\"";
+            " \"" . self::$nextcloud_base . "/remote.php/dav/files/" . self::$oar_api_usr . "/" . ltrim($filePath, '/') . "\"";
 
         $output = null;
         $returnVar = null;
@@ -335,9 +367,11 @@ class FunctionController extends \NamespaceBase\BaseController
     private function getFile($filePath)
     {
         // Fetch file metadata
-        $metadataCommand = "curl -s -X PROPFIND -k -u " .
+        $metadataCommand = "curl -s -X PROPFIND -u " .
             self::$oar_api_login .
-            " -H \"Depth: 0\" \"https://localhost/remote.php/dav/files/" . self::$oar_api_usr . "/" . ltrim($filePath, '/') . "\"";
+            " -H \"Depth: 0\" \"" . 
+            self::$nextcloud_base . 
+            "/remote.php/dav/files/" . self::$oar_api_usr . "/" . ltrim($filePath, '/') . "\"";
 
         $mdOutput = null;
         $mdReturnVar = null;
@@ -386,9 +420,9 @@ class FunctionController extends \NamespaceBase\BaseController
         // Construct the full destination path for the file on Nextcloud
         $fullDestinationPath = ($destinationPath ? rtrim($destinationPath, '/') . '/' : '') . $filenameWithExtension;
 
-        $command = "curl -X PUT -k -u " . escapeshellarg(self::$oar_api_login) .
+        $command = "curl -X PUT -u " . escapeshellarg(self::$oar_api_login) .
             " --data-binary @" . escapeshellarg($localFilePath) .
-            " https://localhost/remote.php/dav/files/oar_api/" . $fullDestinationPath;
+            " " . self::$nextcloud_base . "/remote.php/dav/files/oar_api/" . $fullDestinationPath;
 
         exec($command, $output, $return_var);
 
@@ -417,9 +451,9 @@ class FunctionController extends \NamespaceBase\BaseController
 
         $credentials = self::$oar_api_login;
 
-        $url = "https://localhost/remote.php/dav/files/oar_api/" . ltrim($fullDestinationPath, '/');
+        $url = self::$nextcloud_base . "/remote.php/dav/files/oar_api/" . ltrim($fullDestinationPath, '/');
 
-        $command = "curl -X PUT -k -u " . escapeshellarg($credentials) .
+        $command = "curl -X PUT -u " . escapeshellarg($credentials) .
             " --data-binary @" . escapeshellarg($localFilePath) .
             " " . escapeshellarg($url) . " 2>&1";
 
@@ -441,9 +475,9 @@ class FunctionController extends \NamespaceBase\BaseController
     private function postDirectory($dir)
     {
         $command =
-            "curl -X MKCOL -k -u " .
+            "curl -X MKCOL -u " .
             self::$oar_api_login .
-            " https://localhost/remote.php/dav/files/oar_api/" .
+            " " . self::$nextcloud_base . "/remote.php/dav/files/oar_api/" .
             $dir;
         if (exec($command, $arrUser)) {
             $responseData = json_encode($arrUser);
@@ -459,9 +493,9 @@ class FunctionController extends \NamespaceBase\BaseController
     private function getDirectory($dir)
     {
         $command =
-            "curl -X PROPFIND -k -u " .
+            "curl -X PROPFIND -u " .
             self::$oar_api_login .
-            " -H \"Depth: 0\" https://localhost/remote.php/dav/files/oar_api/" .
+            " -H \"Depth: 0\" " . self::$nextcloud_base . "/remote.php/dav/files/oar_api/" .
             $dir;
         if (exec($command, $arrUser)) {
             $responseData = json_encode($arrUser);
@@ -478,9 +512,9 @@ class FunctionController extends \NamespaceBase\BaseController
     private function deleteDirectory($dir)
     {
         $command =
-            "curl -X DELETE -k -u " .
+            "curl -X DELETE -u " .
             self::$oar_api_login .
-            " https://localhost/remote.php/dav/files/oar_api/" .
+            " " . self::$nextcloud_base . "/remote.php/dav/files/oar_api/" .
             $dir;
         if (exec($command, $arrUser)) {
             $responseData = json_encode($arrUser);
@@ -526,7 +560,7 @@ class FunctionController extends \NamespaceBase\BaseController
     private function scanDirectoryFiles($dir)
     {
         $command =
-            "curl -X PROPFIND -H \"Depth: 1\" -H \"Content-Type: application/xml\" -k -u " .
+            "curl -X PROPFIND -H \"Depth: 1\" -H \"Content-Type: application/xml\" -u " .
             self::$oar_api_login .
             " -d '<?xml version=\"1.0\"?> " .
             "<d:propfind xmlns:d=\"DAV:\" xmlns:oc=\"http://owncloud.org/ns\" xmlns:nc=\"http://nextcloud.org/ns\">" .
@@ -548,7 +582,7 @@ class FunctionController extends \NamespaceBase\BaseController
             "<oc:quota-available-bytes />" .
             "</d:prop>" .
             "</d:propfind>' " .
-            "\"https://localhost/remote.php/dav/files/" . self::$oar_api_usr . "/" . ltrim($dir, '/') . "\"";
+            "\"" . self::$nextcloud_base . "/remote.php/dav/files/" . self::$oar_api_usr . "/" . ltrim($dir, '/') . "\"";
 
         if (exec($command, $arrDir)) {
             $responseData = json_encode($arrDir);
@@ -568,9 +602,9 @@ class FunctionController extends \NamespaceBase\BaseController
     private function postUserPermissions($user, $perm, $dir)
     {
         $command =
-            "curl -X POST -H \"ocs-apirequest:true\" -k -u " .
+            "curl -X POST -H \"ocs-apirequest:true\" -u " .
             self::$oar_api_login .
-            " \"https://localhost/ocs/v2.php/apps/files_sharing/api/v1/shares?shareType=0" .
+            " \"" . self::$nextcloud_base . "/ocs/v2.php/apps/files_sharing/api/v1/shares?shareType=0" .
             "&path=" .
             $dir .
             "&shareWith=" .
@@ -592,9 +626,9 @@ class FunctionController extends \NamespaceBase\BaseController
     private function getUserPermissions($dir)
     {
         $command =
-            "curl -X GET -H \"OCS-APIRequest: true\" -k -u " .
+            "curl -X GET -H \"OCS-APIRequest: true\" -u " .
             self::$oar_api_login .
-            " 'https://localhost/ocs/v2.php/apps/files_sharing/api/v1/shares?path=/" .
+            " '" . self::$nextcloud_base . "/ocs/v2.php/apps/files_sharing/api/v1/shares?path=/" .
             $dir .
             "&reshares=true'";
 
@@ -639,9 +673,9 @@ class FunctionController extends \NamespaceBase\BaseController
     {
         // list of all shares on a specific directory to retrieve shareID
         $command =
-            "curl -X GET -H \"OCS-APIRequest: true\" -k -u " .
+            "curl -X GET -H \"OCS-APIRequest: true\" -u " .
             self::$oar_api_login .
-            " 'https://localhost/ocs/v2.php/apps/files_sharing/api/v1/shares?path=/" .
+            " '" . self::$nextcloud_base . "/ocs/v2.php/apps/files_sharing/api/v1/shares?path=/" .
             $dir .
             "&reshares=true'";
 
@@ -660,9 +694,9 @@ class FunctionController extends \NamespaceBase\BaseController
                     if (isset($shareUsers[$index]) && $shareUsers[$index] == $user) {
                         // Delete the share
                         $deleteCommand =
-                            "curl -X DELETE -H \"OCS-APIRequest: true\" -k -u " .
+                            "curl -X DELETE -H \"OCS-APIRequest: true\" -u " .
                             self::$oar_api_login .
-                            " 'https://localhost/ocs/v2.php/apps/files_sharing/api/v1/shares/" .
+                            " '" . self::$nextcloud_base . "/ocs/v2.php/apps/files_sharing/api/v1/shares/" .
                             $shareId .
                             "'";
 
@@ -691,9 +725,9 @@ class FunctionController extends \NamespaceBase\BaseController
     private function shareGroup($group, $perm, $dir)
     {
         $command =
-            "curl -X POST -H \"ocs-apirequest:true\" -k -u " .
+            "curl -X POST -H \"ocs-apirequest:true\" -u " .
             self::$oar_api_login .
-            " \"https://localhost/ocs/v2.php/apps/files_sharing/api/v1/shares?shareType=1" .
+            " \"" . self::$nextcloud_base . "/ocs/v2.php/apps/files_sharing/api/v1/shares?shareType=1" .
             "&path=" .
             $dir .
             "&shareWith=" .

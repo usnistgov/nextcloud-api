@@ -146,6 +146,19 @@ class BaseController
 	}
 
 	/**
+	 * Send API output 400 error
+	 * 
+	 * @param string $strErrorDesc
+	 */
+	protected function sendError400Output($strErrorDesc)
+	{
+		$strErrorHeader = 'HTTP/1.1 400 Bad Request';
+
+		$this->sendErrorOutput($strErrorDesc, $strErrorHeader);
+	}
+
+
+	/**
 	 * Send API output 404 error
 	 * 
 	 * @param string $strErrorDesc
@@ -165,6 +178,18 @@ class BaseController
 	protected function sendError405Output($strErrorDesc)
 	{
 		$strErrorHeader = 'HTTP/1.1 405 Method not allowed';
+
+		$this->sendErrorOutput($strErrorDesc, $strErrorHeader);
+	}
+
+	/**
+	 * Send API output 500 error
+	 * 
+	 * @param string $strErrorDesc
+	 */
+	protected function sendError500Output($strErrorDesc)
+	{
+		$strErrorHeader = 'HTTP/1.1 500 Internal Server Error';
 
 		$this->sendErrorOutput($strErrorDesc, $strErrorHeader);
 	}
