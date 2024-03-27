@@ -5,63 +5,64 @@ namespace NamespaceFunction;
 use mysqli;
 
 /**
- * Users resource endpoints
+ * USERS resource endpoints
+ * 
  * GET
  * - users
  * - users/{user}
  * PUT
  * - users/{user}/enable
  * - users/{user}/disable
- */
+ * POST
+ * - users/{user}
+ **/
 class UsersController extends \NamespaceBase\BaseController
 {
     public function handle()
     {
-        $strErrorDesc = "";
-
+        $this->logger->info("Handling Users", ['method' => $this->getRequestMethod(), 'uri' => $this->getUriSegments()]);
         $requestMethod = $this->getRequestMethod();
         $arrQueryUri = $this->getUriSegments();
 
-        if ($requestMethod == "GET") {
-            // GET method
-            if (count($arrQueryUri) == 4) {
-                // "/genapi.php/users" Endpoint - Gets info on all users
-                $this->getUsers();
-            } elseif (count($arrQueryUri) == 5) {
-                // "/genapi.php/users/{user}" Endpoint - Gets info on one user
-                $this->getUser($arrQueryUri[4]);
-            } else {
-                $strErrorDesc =
-                    $requestMethod .
-                    " " .
-                    $this->getUri() .
-                    " is not an available Method and Endpoint";
+        try {
+            switch ($requestMethod) {
+                case 'GET':
+                    if (count($arrQueryUri) === 4) {
+                        // "/genapi.php/users" Endpoint - Gets info on all users
+                        $this->getUsers();
+                    } elseif (count($arrQueryUri) === 5) {
+                        // "/genapi.php/users/{user}" Endpoint - Gets info on one user
+                        $this->getUser($arrQueryUri[4]);
+                    }
+                    break;
+                case 'PUT':
+                    if (count($arrQueryUri) === 6) {
+                        $user = $arrQueryUri[4];
+                        if ($arrQueryUri[5] === 'enable') {
+                            // "/genapi.php/users/{user}/enable" Endpoint - enables user
+                            $this->enableUser($user);
+                        } elseif ($arrQueryUri[5] === 'disable') {
+                            // "/genapi.php/users/{user}/diable" Endpoint - disables user
 
-                $this->sendError404Output($strErrorDesc);
-            }
-        } elseif ($requestMethod == "PUT") {
-            // PUT method
-            if (count($arrQueryUri) == 6) {
-                if ($arrQueryUri[5] == "enable") {
-                    // "/genapi.php/users/{user}/enable" Endpoint - enables user
-                    $this->enableUser($arrQueryUri[4]);
-                } elseif ($arrQueryUri[5] == "disable") {
-                    // "/genapi.php/users/{user}/diable" Endpoint - disables user
-                    $this->disableUser($arrQueryUri[4]);
-                }
-            }
-        } elseif ($requestMethod == "POST") {
-            // POST method
-            if (count($arrQueryUri) == 5) {
-                $this->createUser($arrQueryUri[4]); // "/genapi.php/users/{user}" Endpoint - creates user
-            }
-        }
-        // unsupported method
-        else {
-            $strErrorDesc =
-                $requestMethod . " is not an available request Method";
+                            $this->disableUser($user);
+                        }
+                    }
+                    break;
+                case 'POST':
+                    if (count($arrQueryUri) === 5) {
+                        // "/genapi.php/users/{user}" Endpoint - creates user
+                        $this->createUser($arrQueryUri[4]);
+                    }
+                    break;
 
-            $this->sendError405Output($strErrorDesc);
+                default:
+                    $strErrorDesc = $requestMethod . " is not supported for users endpoint.";
+                    $this->logger->warning("The endpoint doesn't exist for the requested method.", ['requestMethod' => $requestMethod]);
+                    return $this->sendError405Output($strErrorDesc);
+            }
+        } catch (\Exception $e) {
+            $this->logger->error("Exception occurred in handle method", ['exception' => $e->getMessage()]);
+            return $this->sendError400Output($e->getMessage());
         }
     }
 
@@ -71,9 +72,13 @@ class UsersController extends \NamespaceBase\BaseController
     private function getUsers()
     {
         $command = parent::$occ . " user:list -i --output json";
-        if (exec($command, $arrUser)) {
-            $this->sendOkayOutput($arrUser[0]);
-            return $arrUser[0];
+        exec($command, $output, $returnVar);
+        if ($returnVar === 0) {
+            $this->logger->info("Retrieved all users successfully.");
+            return $this->sendOkayOutput(json_encode($output));
+        } else {
+            $this->logger->error("Failed to retrieve users.");
+            return $this->sendError500Output("Failed to retrieve users.");
         }
     }
 
@@ -83,9 +88,13 @@ class UsersController extends \NamespaceBase\BaseController
     private function getUser($user)
     {
         $command = parent::$occ . " user:info " . $user . " --output json";
-        if (exec($command, $arrUser)) {
-            $this->sendOkayOutput($arrUser[0]);
-            return $arrUser[0];
+        exec($command, $output, $returnVar);
+        if ($returnVar === 0) {
+            $this->logger->info("Retrieved user info successfully.", ['user' => $user]);
+            return $this->sendOkayOutput(json_encode($output));
+        } else {
+            $this->logger->error("Failed to retrieve user info.", ['user' => $user]);
+            return $this->sendError500Output("Failed to retrieve user info for " . $user);
         }
     }
 
@@ -95,10 +104,13 @@ class UsersController extends \NamespaceBase\BaseController
     private function enableUser($user)
     {
         $command = parent::$occ . " user:enable " . $user;
-        if (exec($command, $arrUser)) {
-            $responseData = json_encode($arrUser);
-            $this->sendOkayOutput($responseData);
-            return $responseData;
+        exec($command, $output, $returnVar);
+        if ($returnVar === 0) {
+            $this->logger->info("User enabled successfully.", ['user' => $user]);
+            return $this->sendOkayOutput("User " . $user . " enabled successfully.");
+        } else {
+            $this->logger->error("Failed to enable user.", ['user' => $user]);
+            return $this->sendError500Output("Failed to enable user " . $user);
         }
     }
 
@@ -108,11 +120,13 @@ class UsersController extends \NamespaceBase\BaseController
     private function disableUser($user)
     {
         $command = parent::$occ . " user:disable " . $user;
-        if (exec($command, $arrUser)) {
-            $responseData = json_encode($arrUser);
-
-            $this->sendOkayOutput($responseData);
-            return $responseData;
+        exec($command, $output, $returnVar);
+        if ($returnVar === 0) {
+            $this->logger->info("User disabled successfully.", ['user' => $user]);
+            return $this->sendOkayOutput("User " . $user . " disabled successfully.");
+        } else {
+            $this->logger->error("Failed to disable user.", ['user' => $user]);
+            return $this->sendError500Output("Failed to disable user " . $user);
         }
     }
 
@@ -130,7 +144,8 @@ class UsersController extends \NamespaceBase\BaseController
         );
         // check connection
         if ($db->connect_error) {
-            die("connection failed: " . $db->connect_error);
+            $this->logger->error("Database connection failed: " . $db->connect_error);
+            return $this->sendError500Output("Database connection failed.");
         }
 
         // check if user already exists in database
@@ -145,7 +160,8 @@ class UsersController extends \NamespaceBase\BaseController
         }
 
         if ($count > 0) {
-            print_r($user . " already exists");
+            $this->logger->warning("User already exists.", ['user' => $user]);
+            return $this->sendError400Output("User " . $user . " already exists.");
         } else {
             print_r("adding " . $user);
             // add user to database
@@ -155,9 +171,11 @@ class UsersController extends \NamespaceBase\BaseController
                 "');";
 
             if ($db->query($sql) === true) {
-                echo $user . " added";
+                $this->logger->info("User created successfully.", ['user' => $user]);
+                return $this->sendCreatedOutput("User " . $user . " created successfully.");
             } else {
-                echo "Error: " . $sql . "<br>" . $db->error;
+                $this->logger->error("Failed to create user.", ['user' => $user, 'error' => $db->error]);
+                return $this->sendError500Output("Failed to create user " . $user);
             }
         }
 

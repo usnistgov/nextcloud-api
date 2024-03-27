@@ -2,21 +2,36 @@
 
 namespace NamespaceFunction;
 
+use GuzzleHttp\Exception\GuzzleException;
+
 /**
  * Files resource endpoints
+ * 
+ * POST
+ * - files/file/{path to dir}
+ * - files/directory/{directory name}
+ * - files/userpermissions/{user}/{permissions}/{directory}
+ * - files/sharegroup/{group}/{permissions}/{directory}
  * PUT
  * - files/scan
  * - files/scan/{user}
+ * - files/scan/directory/{directory path}
  * - files/file/{path to file}
- * POST
- * - files/file/{path to dir}
+ * - files/userpermissions/{user}/{permissions}/{directory}
  * GET
  * - files/file/{path to file}
+ * - files/directory/{directory name}
+ * - files/userpermissions/{directory}
+ * DELETE
+ * - files/directory/{directory name}
+ * - files/userpermissions/{user}/{directory}
+ * - files/file/{file path}
  **/
 class FilesController extends \NamespaceBase\BaseController
 {
     public function handle()
     {
+        $this->logger->info("Handling Files", ['method' => $this->getRequestMethod(), 'uri' => $this->getUriSegments()]);
         try {
             $strErrorDesc = "";
 
@@ -160,11 +175,13 @@ class FilesController extends \NamespaceBase\BaseController
                     break;
                 default:
                     $strErrorDesc = $requestMethod . " is not supported for files endpoint.";
-                    $this->sendError405Output($strErrorDesc);
+                    $this->logger->warning("The endpoint doesn't exist for the requested method.", ['requestMethod' => $requestMethod]);
+                    return $this->sendError405Output($strErrorDesc);
                     break;
             }
         } catch (\Exception $e) {
-            $this->sendError400Output($e->getMessage());
+            $this->logger->error("Exception occurred in handle method", ['exception' => $e->getMessage()]);
+            return $this->sendError400Output($e->getMessage());
         }
     }
 
@@ -173,22 +190,22 @@ class FilesController extends \NamespaceBase\BaseController
      */
     private function deleteFile($filePath)
     {
-        $command = "curl -s -X DELETE -u " .
-            parent::$oar_api_login .
-            " \"" . parent::$nextcloud_base . "/remote.php/dav/files/" . parent::$oar_api_usr . "/" . ltrim($filePath, '/') . "\"";
+        try {
+            $response = $this->guzzleClient->request('DELETE', parent::$nextcloud_base . "/remote.php/dav/files/" . parent::$oar_api_usr . "/" . ltrim($filePath, '/'), [
+                'auth' => [parent::$oar_api_usr, parent::$oar_api_pwd]
+            ]);
 
-        $output = null;
-        $returnVar = null;
-
-        exec($command, $output, $returnVar);
-
-        if ($returnVar === 0) {
-            $responseData = json_encode($output);
-            $this->sendOkayOutput($responseData);
-            return $responseData;
-        } else {
-            $this->sendError500Output('Failed to delete the file.');
-            return null;
+            if ($response->getStatusCode() === 200) {
+                $this->logger->info("File deleted successfully", ['filePath' => $filePath]);
+                $responseData = (string) $response->getBody();
+                return $this->sendOkayOutput($responseData);
+            } else {
+                $this->logger->warning("Failed to delete the file with status code", ['filePath' => $filePath, 'statusCode' => $response->getStatusCode()]);
+                return $this->sendError500Output('Failed to delete the file.');
+            }
+        } catch (GuzzleException $e) {
+            $this->logger->error("Failed to delete file", ['filePath' => $filePath, 'error' => $e->getMessage()]);
+            return $this->sendError500Output('Failed to delete the file. ' . $e->getMessage());
         }
     }
 
@@ -211,38 +228,31 @@ class FilesController extends \NamespaceBase\BaseController
      */
     private function getFile($filePath)
     {
-        // Fetch file metadata
-        $metadataCommand = "curl -s -X PROPFIND -u " .
-            parent::$oar_api_login .
-            " -H \"Depth: 0\" \"" .
-            parent::$nextcloud_base .
-            "/remote.php/dav/files/" . parent::$oar_api_usr . "/" . ltrim($filePath, '/') . "\"";
+        try {
+            $response = $this->guzzleClient->request('PROPFIND', parent::$nextcloud_base . "/remote.php/dav/files/" . parent::$oar_api_usr . "/" . ltrim($filePath, '/'), [
+                'headers' => [
+                    'Depth' => '0'
+                ],
+                'auth' => [parent::$oar_api_usr, parent::$oar_api_pwd]
+            ]);
 
-        $mdOutput = null;
-        $mdReturnVar = null;
+            $metadata = (string) $response->getBody();
 
-        // Execute metadata command
-        exec($metadataCommand, $mdOutput, $mdReturnVar);
+            if (strpos($metadata, '<s:exception>Sabre\\DAV\\Exception\\NotFound</s:exception>') !== false) {
+                $this->logger->warning("File not found during getFile", ['filePath' => $filePath]);
+                return $this->sendError404Output('File not found.');
+            }
 
-        $metadata = implode("\n", $mdOutput);
+            $this->logger->info("File retrieved successfully", ['filePath' => $filePath]);
+            $responseData = json_encode([
+                'metadata' => $metadata,
+            ]);
 
-        // Check if file exists
-        if (strpos($metadata, '<s:exception>Sabre\\DAV\\Exception\\NotFound</s:exception>') !== false) {
-            $this->sendError404Output('File not found.');
-            return null;
+            return $this->sendOkayOutput($responseData);
+        } catch (GuzzleException $e) {
+            $this->logger->error("Failed to retrieve the file metadata", ['filePath' => $filePath, 'error' => $e->getMessage()]);
+            return $this->sendError500Output('Failed to retrieve the file metadata. ' . $e->getMessage());
         }
-
-        if ($mdReturnVar !== 0) {
-            $this->sendError500Output('Failed to retrieve the file metadata.');
-            return null;
-        }
-
-        $responseData = json_encode([
-            'metadata' => $metadata,
-        ]);
-
-        $this->sendOkayOutput($responseData);
-        return $responseData;
     }
 
     /**
@@ -250,34 +260,35 @@ class FilesController extends \NamespaceBase\BaseController
      */
     private function postFile($localFilePath, $destinationPath)
     {
+
         // Check if file was provided and uploaded without errors
         if (!$localFilePath || !isset($_FILES['file']) || $_FILES['file']['error'] !== UPLOAD_ERR_OK) {
+            $this->logger->error("File upload error", ['error' => $_FILES['file']['error'] ?? 'No file uploaded']);
             $error = "File upload error!";
-            $this->sendError500Output($error);
-            return $error;
+            return $this->sendError500Output($error);
         }
-        // Extract filename and extension from the local file path
-        $originalFilename = $_FILES['file']['name'];
-        $fileInfo = pathinfo($originalFilename);
-        $filenameWithExtension = $fileInfo['basename'];
 
+        $filenameWithExtension = basename($_FILES['file']['name']);
+        $fullDestinationPath = rtrim(parent::$nextcloud_base . "/remote.php/dav/files/oar_api/" . ($destinationPath ? trim($destinationPath, '/') . '/' : ''), '/') . '/' . $filenameWithExtension;
+        try {
+            $response = $this->guzzleClient->request('PUT', $fullDestinationPath, [
+                'body' => fopen($localFilePath, 'r'),
+                'headers' => [
+                    'Content-Type' => 'application/octet-stream',
+                ],
+            ]);
 
-        // Construct the full destination path for the file on Nextcloud
-        $fullDestinationPath = ($destinationPath ? rtrim($destinationPath, '/') . '/' : '') . $filenameWithExtension;
-
-        $command = "curl -X PUT -u " . escapeshellarg(parent::$oar_api_login) .
-            " --data-binary @" . escapeshellarg($localFilePath) .
-            " " . parent::$nextcloud_base . "/remote.php/dav/files/oar_api/" . $fullDestinationPath;
-
-        exec($command, $output, $return_var);
-
-        if ($return_var === 0) {
-            $responseData = json_encode($output);
-            $this->sendOkayOutput($responseData);
-            return $responseData;
-        } else {
-            $this->sendError500Output("File upload failed!");
-            return null;
+            if ($response->getStatusCode() === 200 || $response->getStatusCode() === 201) {
+                $this->logger->info("File uploaded successfully", ['path' => $fullDestinationPath]);
+                $responseData = (string) $response->getBody();
+                return $this->sendCreatedOutput($responseData);
+            } else {
+                $this->logger->warning("File upload failed with status code", ['path' => $fullDestinationPath, 'statusCode' => $response->getStatusCode()]);
+                return $this->sendError500Output("File upload failed!");
+            }
+        } catch (GuzzleException $e) {
+            $this->logger->error("File upload failed", ['path' => $fullDestinationPath, 'error' => $e->getMessage()]);
+            return $this->sendError500Output("File upload failed! " . $e->getMessage());
         }
     }
 
@@ -287,30 +298,24 @@ class FilesController extends \NamespaceBase\BaseController
     private function putFile($localFilePath, $destinationPath)
     {
         if (!$localFilePath || !file_exists($localFilePath)) {
-            $error = "Local file path invalid or file does not exist!";
-            $this->sendError500Output($error);
-            return;
+            $this->logger->error("Local file path invalid or file does not exist", ['localFilePath' => $localFilePath]);
+            return $this->sendError500Output("Local file path invalid or file does not exist!");
         }
 
-        $fullDestinationPath = rtrim($destinationPath, '/');
+        try {
+            $response = $this->guzzleClient->request('PUT', "/remote.php/dav/files/oar_api/" . ltrim($destinationPath, '/'), [
+                'body' => fopen($localFilePath, 'r'),
+                'headers' => [
+                    'Content-Type' => 'application/octet-stream',
+                ],
+            ]);
 
-        $credentials = parent::$oar_api_login;
-
-        $url = parent::$nextcloud_base . "/remote.php/dav/files/oar_api/" . ltrim($fullDestinationPath, '/');
-
-        $command = "curl -X PUT -u " . escapeshellarg($credentials) .
-            " --data-binary @" . escapeshellarg($localFilePath) .
-            " " . escapeshellarg($url) . " 2>&1";
-
-        exec($command, $output, $return_var);
-
-
-        if ($return_var === 0) {
-            $responseData = json_encode(['content' => $output]);
-            $this->sendOkayOutput($responseData);
-        } else {
-            $errorOutput = implode("\n", $output);
-            $this->sendError500Output("File update failed! Error: " . $errorOutput);
+            $this->logger->info("File updated successfully", ['destinationPath' => $destinationPath]);
+            $responseData = $response->getBody()->getContents();
+            return $this->sendOkayOutput($responseData);
+        } catch (GuzzleException $e) {
+            $this->logger->error("File update failed", ['destinationPath' => $destinationPath, 'error' => $e->getMessage()]);
+            return $this->sendError500Output("File update failed! Error: " . $e->getMessage());
         }
     }
 
@@ -319,53 +324,54 @@ class FilesController extends \NamespaceBase\BaseController
      */
     private function postDirectory($dir)
     {
-        $command =
-            "curl -X MKCOL -u " .
-            parent::$oar_api_login .
-            " " . parent::$nextcloud_base . "/remote.php/dav/files/oar_api/" .
-            $dir;
-        if (exec($command, $arrUser)) {
-            $responseData = json_encode($arrUser);
-            $this->sendOkayOutput($responseData);
-
-            return $responseData;
+        $this->guzzleClient = $this->getGuzzleClient();
+        try {
+            $response = $this->guzzleClient->request('MKCOL', "/remote.php/dav/files/oar_api/" . $dir);
+            if ($response->getStatusCode() === 200 || $response->getStatusCode() === 201) {
+                $this->logger->info("Directory created successfully", ['dir' => $dir]);
+                return $this->sendCreatedOutput("Directory created successfully.");
+            } else {
+                $this->logger->warning("Directory creation failed with status code", ['path' => $dir, 'statusCode' => $response->getStatusCode()]);
+                return $this->sendError500Output("Directory creation failed!");
+            }
+        } catch (GuzzleException $e) {
+            $this->logger->error("Failed to create directory", ['dir' => $dir, 'error' => $e->getMessage()]);
+            return $this->sendError500Output("Failed to create directory. " . $e->getMessage());
         }
     }
+
 
     /**
      * "-X GET /files/directory/{directory name}" Endpoint - get directory info
      */
     private function getDirectory($dir)
     {
-        $command =
-            "curl -X PROPFIND -u " .
-            parent::$oar_api_login .
-            " -H \"Depth: 0\" " . parent::$nextcloud_base . "/remote.php/dav/files/oar_api/" .
-            $dir;
-        if (exec($command, $arrUser)) {
-            $responseData = json_encode($arrUser);
-            $this->sendOkayOutput($responseData);
+        try {
+            $response = $this->guzzleClient->request('PROPFIND', "/remote.php/dav/files/oar_api/" . $dir, [
+                'headers' => ['Depth' => '0'],
+            ]);
 
-            return $responseData;
+            $responseData = $response->getBody()->getContents();
+            $this->logger->info("Directory info retrieved successfully", ['dir' => $dir]);
+            return $this->sendOkayOutput($responseData);
+        } catch (GuzzleException $e) {
+            $this->logger->error("Failed to get directory info", ['dir' => $dir, 'error' => $e->getMessage()]);
+            return $this->sendError500Output("Failed to get directory info. " . $e->getMessage());
         }
     }
 
     /**
      * "-X DELETE /files/directory/{directory name}" Endpoint - deletes directory
      */
-    #TODO
     private function deleteDirectory($dir)
     {
-        $command =
-            "curl -X DELETE -u " .
-            parent::$oar_api_login .
-            " " . parent::$nextcloud_base . "/remote.php/dav/files/oar_api/" .
-            $dir;
-        if (exec($command, $arrUser)) {
-            $responseData = json_encode($arrUser);
-            $this->sendOkayOutput($responseData);
-
-            return $responseData;
+        try {
+            $response = $this->guzzleClient->request('DELETE', "/remote.php/dav/files/oar_api/" . $dir);
+            $this->logger->info("Directory deleted successfully", ['dir' => $dir]);
+            return $this->sendOkayOutput($response);
+        } catch (GuzzleException $e) {
+            $this->logger->error("Failed to delete directory", ['path' => $dir, 'error' => $e->getMessage()]);
+            return $this->sendError500Output("Failed to delete directory. " . $e->getMessage());
         }
     }
 
@@ -374,12 +380,22 @@ class FilesController extends \NamespaceBase\BaseController
      */
     private function scanAllFiles()
     {
+        // Define the command to execute
         $command = parent::$occ . " files:scan --all";
-        if (exec($command, $arrUser)) {
-            $responseData = json_encode($arrUser);
-            $this->sendOkayOutput($responseData);
+        $scanResults = [];
+        $this->logger->info("Executing scanAllFiles command", ['command' => $command]);
 
-            return $responseData;
+        exec($command, $scanResults, $returnVar);
+
+        // Check if the command was executed successfully
+        if ($returnVar === 0) {
+            $this->logger->info("All files scanned successfully");
+            $responseData = json_encode($scanResults);
+            return $this->sendOkayOutput($responseData);
+        } else {
+            $this->logger->error("scanAllFiles command failed", ['command' => $command, 'returnVar' => $returnVar]);
+            error_log("Error executing scanAllFiles: $command");
+            return $this->sendError500Output("Failed to scan files.");
         }
     }
 
@@ -388,13 +404,21 @@ class FilesController extends \NamespaceBase\BaseController
      */
     private function scanUserFiles($user)
     {
+        // Define the command to execute
         $command = parent::$occ . " files:scan " . $user;
+        $scanResults = [];
+        $this->logger->info("Executing scanUserFiles command", ['command' => $command, 'user' => $user]);
 
-        if (exec($command, $arrUser)) {
-            $responseData = json_encode($arrUser);
-            $this->sendOkayOutput($responseData);
+        exec($command, $scanResults, $returnVar);
 
-            return $responseData;
+        // Check if the command was executed successfully
+        if ($returnVar === 0) {
+            $this->logger->info("Files scanned successfully for user", ['user' => $user]);
+            $responseData = json_encode($scanResults);
+            return $this->sendOkayOutput($responseData);
+        } else {
+            $this->logger->error("scanUserFiles command failed", ['command' => $command, 'user' => $user, 'returnVar' => $returnVar]);
+            return $this->sendError500Output("Failed to scan files.");
         }
     }
 
@@ -404,41 +428,27 @@ class FilesController extends \NamespaceBase\BaseController
      */
     private function scanDirectoryFiles($dir)
     {
-        $command =
-            "curl -X PROPFIND -H \"Depth: 1\" -H \"Content-Type: application/xml\" -u " .
-            parent::$oar_api_login .
-            " -d '<?xml version=\"1.0\"?> " .
-            "<d:propfind xmlns:d=\"DAV:\" xmlns:oc=\"http://owncloud.org/ns\" xmlns:nc=\"http://nextcloud.org/ns\">" .
-            "<d:allprop />" .
-            "<d:prop>" .
-            "<oc:fileid />" .
-            "<oc:permissions />" .
-            "<oc:size />" .
-            "<oc:checksums />" .
-            "<oc:favorite />" .
-            "<nc:has-preview />" .
-            "<oc:tags />" .
-            "<oc:comments-href />" .
-            "<oc:comments-count />" .
-            "<oc:comments-unread />" .
-            "<oc:share-types />" .
-            "<oc:owner-display-name />" .
-            "<oc:quota-used-bytes />" .
-            "<oc:quota-available-bytes />" .
-            "</d:prop>" .
-            "</d:propfind>' " .
-            "\"" . parent::$nextcloud_base . "/remote.php/dav/files/" . parent::$oar_api_usr . "/" . ltrim($dir, '/') . "\"";
+        try {
+            $response = $this->guzzleClient->request('PROPFIND', "/remote.php/dav/files/" . parent::$oar_api_usr . "/" . ltrim($dir, '/'), [
+                'headers' => [
+                    'Depth' => '1',
+                    'Content-Type' => 'application/xml',
+                ],
+                'body' => '<?xml version="1.0"?>
+                    <d:propfind xmlns:d="DAV:" xmlns:oc="http://owncloud.org/ns" xmlns:nc="http://nextcloud.org/ns">
+                        <d:allprop/>
+                    </d:propfind>'
+            ]);
 
-        if (exec($command, $arrDir)) {
-            $responseData = json_encode($arrDir);
-            $this->sendOkayOutput($responseData);
-
-            return $responseData;
-        } else {
-            $this->sendError500Output("Failed to scan directory.");
-            return;
+            $this->logger->info("Directory files scanned successfully", ['dir' => $dir]);
+            $responseData = $response->getBody()->getContents();
+            return $this->sendOkayOutput($responseData);
+        } catch (GuzzleException $e) {
+            $this->logger->error("Failed to scan directory files", ['dir' => $dir, 'error' => $e->getMessage()]);
+            return $this->sendError500Output("Failed to scan directory. " . $e->getMessage());
         }
     }
+
 
 
     /**
@@ -446,122 +456,137 @@ class FilesController extends \NamespaceBase\BaseController
      */
     private function postUserPermissions($user, $perm, $dir)
     {
-        $command =
-            "curl -X POST -H \"ocs-apirequest:true\" -u " .
-            parent::$oar_api_login .
-            " \"" . parent::$nextcloud_base . "/ocs/v2.php/apps/files_sharing/api/v1/shares?shareType=0" .
-            "&path=" .
-            $dir .
-            "&shareWith=" .
-            $user .
-            "&permissions=" .
-            $perm .
-            "\"";
-        if (exec($command, $arrUser)) {
-            $responseData = json_encode($arrUser);
-            $this->sendOkayOutput($responseData);
+        try {
+            $response = $this->guzzleClient->request('POST', "/ocs/v2.php/apps/files_sharing/api/v1/shares", [
+                'headers' => [
+                    'OCS-APIRequest' => 'true',
+                ],
+                'form_params' => [
+                    'shareType' => '0',
+                    'path' => $dir,
+                    'shareWith' => $user,
+                    'permissions' => $perm,
+                ],
+            ]);
 
-            return $responseData;
+            $this->logger->info("User permissions posted successfully", ['user' => $user, 'permissions' => $perm, 'dir' => $dir]);
+            $responseData = $response->getBody()->getContents();
+            return $this->sendCreatedOutput($responseData);
+        } catch (GuzzleException $e) {
+            $this->logger->error("Failed to post user permissions", ['user' => $user, 'permissions' => $perm, 'dir' => $dir, 'error' => $e->getMessage()]);
+            return $this->sendError500Output("Failed to share file/folder with user. " . $e->getMessage());
         }
     }
+
 
     /**
      * "-X GET /files/userpermissions/{directory}" Endpoint - get users with permissions to file/folder
      */
     private function getUserPermissions($dir)
     {
-        $command =
-            "curl -X GET -H \"OCS-APIRequest: true\" -u " .
-            parent::$oar_api_login .
-            " '" . parent::$nextcloud_base . "/ocs/v2.php/apps/files_sharing/api/v1/shares?path=/" .
-            $dir .
-            "&reshares=true'";
+        try {
+            $response = $this->guzzleClient->request('GET', "/ocs/v2.php/apps/files_sharing/api/v1/shares", [
+                'headers' => [
+                    'OCS-APIRequest' => 'true',
+                ],
+                'query' => [
+                    'path' => '/' . $dir,
+                    'reshares' => 'true',
+                ],
+            ]);
 
-        $arrResult = [];
-
-        if (exec($command, $arrResult)) {
-            $responseData = json_encode($arrResult);
-            $this->sendOkayOutput($responseData);
-            return $responseData;
+            $this->logger->info("User permissions retrieved successfully", ['dir' => $dir]);
+            $responseData = $response->getBody()->getContents();
+            return $this->sendOkayOutput($responseData);
+        } catch (GuzzleException $e) {
+            $this->logger->error("Failed to get user permissions", ['dir' => $dir, 'error' => $e->getMessage()]);
+            return $this->sendError404Output("Failed to get user permissions. " . $e->getMessage());
         }
-
-        $responseData = json_encode($arrResult);
-        $this->sendError404Output($responseData);
-
-        return $responseData;
     }
+
 
     /**
      * "-X PUT /files/userpermissions/{user}/{permissions}/{directory}" Endpoint - Modify user permissions to directory
      */
-    #TODO
     private function putUserPermissions($user, $perm, $dir)
     {
         // Delete existing permissions
-        $deleteResult = $this->deleteUserPermissions($user, $dir);
+        $deleteSuccessful = $this->deleteUserPermissions($user, $dir);
 
         // If the deletion was successful, add new permissions
-        $deleteResultData = json_decode($deleteResult, true);
+        if ($deleteSuccessful) {
+            try {
+                // Try to add new permissions
+                $postResult = $this->postUserPermissions($user, $perm, $dir);
 
-        if (!array_key_exists('error', $deleteResultData)) {
-            return $this->postUserPermissions($user, $perm, $dir);
+                if ($postResult) {
+                    // Success path: permissions were successfully modified
+                    $this->logger->info("User permissions modified successfully", ['user' => $user, 'permissions' => $perm, 'dir' => $dir]);
+                    return true;
+                } else {
+                    // Failed to add new permissions after deletion
+                    $this->logger->error("Failed to modify user permissions after deleting old ones", ['user' => $user, 'dir' => $dir]);
+                    return $this->sendError500Output("Failed to add new permissions after deleting the old ones.");
+                }
+            } catch (GuzzleException $e) {
+                $this->logger->error("Exception occurred while modifying user permissions", ['user' => $user, 'dir' => $dir, 'error' => $e->getMessage()]);
+                return $this->sendError500Output("Failed to modify user permissions: " . $e->getMessage());
+            }
+        } else {
+            // Deletion failed, report back
+            $this->logger->error("Failed to delete existing permissions, cannot modify", ['user' => $user, 'dir' => $dir]);
+            return $this->sendError500Output("Failed to delete existing permissions.");
         }
-
-        // If there was an issue with the deletion
-        return $deleteResult;
     }
+
 
     /**
      * "-X DELETE /files/userpermissions/{user}/{directory}" Endpoint - Delete user permissions to directory
      */
     private function deleteUserPermissions($user, $dir)
     {
-        // list of all shares on a specific directory to retrieve shareID
-        $command =
-            "curl -X GET -H \"OCS-APIRequest: true\" -u " .
-            parent::$oar_api_login .
-            " '" . parent::$nextcloud_base . "/ocs/v2.php/apps/files_sharing/api/v1/shares?path=/" .
-            $dir .
-            "&reshares=true'";
+        // Step 1: Retrieve the list of shares to find the relevant share ID
+        try {
+            $response = $this->guzzleClient->request('GET', "/ocs/v2.php/apps/files_sharing/api/v1/shares", [
+                'headers' => [
+                    'OCS-APIRequest' => 'true',
+                ],
+                'query' => [
+                    'path' => '/' . $dir,
+                    'reshares' => 'true',
+                ],
+            ]);
 
-        $arrResult = [];
+            $shares = json_decode($response->getBody()->getContents(), true);
 
-        if (exec($command, $arrResult)) {
-            $data = implode("\n", $arrResult);
-            $idPattern = '/<id>(.*?)<\/id>/';
-            $userPattern = '/<share_with>(.*?)<\/share_with>/';
+            // Assuming $shares contains an array of share information
+            foreach ($shares['ocs']['data'] as $share) {
+                if ($share['share_with'] === $user) {
+                    // Step 2: Delete the share using its ID
+                    $shareId = $share['id'];
+                    $deleteResponse = $this->guzzleClient->request('DELETE', "/ocs/v2.php/apps/files_sharing/api/v1/shares/$shareId", [
+                        'headers' => [
+                            'OCS-APIRequest' => 'true',
+                        ],
+                    ]);
 
-            if (preg_match_all($idPattern, $data, $idMatches) && preg_match_all($userPattern, $data, $userMatches)) {
-                $shareIds = $idMatches[1];
-                $shareUsers = $userMatches[1];
-
-                foreach ($shareIds as $index => $shareId) {
-                    if (isset($shareUsers[$index]) && $shareUsers[$index] == $user) {
-                        // Delete the share
-                        $deleteCommand =
-                            "curl -X DELETE -H \"OCS-APIRequest: true\" -u " .
-                            parent::$oar_api_login .
-                            " '" . parent::$nextcloud_base . "/ocs/v2.php/apps/files_sharing/api/v1/shares/" .
-                            $shareId .
-                            "'";
-
-                        // Execute delete command
-                        $arrDeleteResult = [];
-                        if (exec($deleteCommand, $arrDeleteResult)) {
-                            $responseData = json_encode($arrDeleteResult);
-                            $this->sendOkayOutput($responseData);
-
-                            return $responseData;
-                        }
+                    if ($deleteResponse->getStatusCode() == 200) {
+                        $this->logger->info("User permissions deleted successfully", ['user' => $user, 'dir' => $dir, 'shareId' => $shareId]);
+                        return $this->sendOkayOutput(json_encode(['success' => true, 'message' => "Share ID $shareId deleted."]));
+                    } else {
+                        $this->logger->error("Failed to delete user permissions", ['user' => $user, 'dir' => $dir, 'shareId' => $shareId]);
+                        return $this->sendError500Output("Failed to delete share ID $shareId.");
                     }
                 }
             }
+
+            // If no matching share was found
+            $this->logger->warning("No matching share found to delete user permissions", ['user' => $user, 'dir' => $dir]);
+            return $this->sendError404Output("No matching share found for user $user in directory $dir.");
+        } catch (GuzzleException $e) {
+            $this->logger->error("Failed to delete user permissions due to an exception", ['user' => $user, 'dir' => $dir, 'error' => $e->getMessage()]);
+            return $this->sendError500Output("Failed to retrieve or delete user permissions. " . $e->getMessage());
         }
-
-        $responseData = json_encode($arrResult);
-        $this->sendError404Output($responseData);
-
-        return $responseData;
     }
 
     /**
@@ -569,22 +594,25 @@ class FilesController extends \NamespaceBase\BaseController
      */
     private function shareGroup($group, $perm, $dir)
     {
-        $command =
-            "curl -X POST -H \"ocs-apirequest:true\" -u " .
-            parent::$oar_api_login .
-            " \"" . parent::$nextcloud_base . "/ocs/v2.php/apps/files_sharing/api/v1/shares?shareType=1" .
-            "&path=" .
-            $dir .
-            "&shareWith=" .
-            $group .
-            "&permissions=" .
-            $perm .
-            "\"";
-        if (exec($command, $arrUser)) {
-            $responseData = json_encode($arrUser);
-            $this->sendOkayOutput($responseData);
+        try {
+            $response = $this->guzzleClient->request('POST', "/ocs/v2.php/apps/files_sharing/api/v1/shares", [
+                'headers' => [
+                    'OCS-APIRequest' => 'true',
+                ],
+                'form_params' => [
+                    'shareType' => '1',
+                    'path' => $dir,
+                    'shareWith' => $group,
+                    'permissions' => $perm,
+                ],
+            ]);
 
-            return $responseData;
+            $this->logger->info("Directory shared with group successfully", ['group' => $group, 'permissions' => $perm, 'dir' => $dir]);
+            $responseData = $response->getBody()->getContents();
+            return $this->sendCreatedOutput($responseData);
+        } catch (GuzzleException $e) {
+            $this->logger->error("Failed to share directory with group", ['group' => $group, 'permissions' => $perm, 'dir' => $dir, 'error' => $e->getMessage()]);
+            return $this->sendError500Output("Failed to share file/folder with group. " . $e->getMessage());
         }
     }
 }

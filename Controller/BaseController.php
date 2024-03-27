@@ -2,6 +2,9 @@
 
 namespace NamespaceBase;
 
+use GuzzleHttp\Client;
+use Monolog\Logger;
+use Monolog\Handler\StreamHandler;
 
 class BaseController
 {
@@ -16,9 +19,23 @@ class BaseController
 	protected static $dbpass = "";
 	protected static $dbname = "";
 
+	protected $guzzleClient;
+    protected $logger;
+
 	public function __construct()
 	{
 		$this->loadConfiguration();
+		$this->logger = new Logger('LoggerFM');
+		$this->logger->pushHandler(new StreamHandler(__DIR__.'/Logs.log', Logger::DEBUG));
+
+		$this->guzzleClient = new Client([
+			'base_uri' => self::$nextcloud_base,
+			'auth' => [self::$oar_api_usr, self::$oar_api_pwd],
+			'headers' => [
+				'Accept' => 'application/json',
+			],
+		]);
+
 	}
 
 	protected function loadConfiguration()

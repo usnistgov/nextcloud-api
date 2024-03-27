@@ -3,192 +3,162 @@
 namespace NamespaceFunction;
 
 /**
-     * Group resource endpoints
-     * GET
-     * - groups
-     * - groups/{group name}
-     * POST
-     * - groups/{group name}
-     * - groups/{group name}/{member}
-     * DELETE
-     * - groups/{group name}
-     * - groups/{group name}/{member}
-     */
-    class GroupsController extends \NamespaceBase\BaseController {
-        public function handle()
-        {
-        $strErrorDesc = "";
+ * GROUPS resource endpoints
+ * 
+ * GET
+ * - groups
+ * - groups/{group name}
+ * POST
+ * - groups/{group name}
+ * - groups/{group name}/{member}
+ * DELETE
+ * - groups/{group name}
+ * - groups/{group name}/{member}
+ **/
+class GroupsController extends \NamespaceBase\BaseController
+{
+    public function handle()
+    {
+
+        $this->logger->info("Handling Groups", ['method' => $this->getRequestMethod(), 'uri' => $this->getUriSegments()]);
 
         $requestMethod = $this->getRequestMethod();
         $arrQueryUri = $this->getUriSegments();
 
-        if ($requestMethod == "GET") {
-            // GET method
-            if (count($arrQueryUri) == 4) {
-                // "/genapi.php/groups" Endpoint - returns list of all groups
-                $this->getGroups();
-            } elseif (count($arrQueryUri) == 5) {
-                // "/genapi.php/groups/{group name}" Endpoint - returns list of members of specific group
-                $this->getGroupMembers($arrQueryUri[4]);
-            } else {
-                $strErrorDesc =
-                    $requestMethod .
-                    " " .
-                    $this->getUri() .
-                    " is not an available Method and Endpoint";
-
-                $this->sendError404Output($strErrorDesc);
+        try {
+            switch ($requestMethod) {
+                case "GET":
+                    if (count($arrQueryUri) == 4) {
+                        // "/genapi.php/groups" Endpoint - returns list of all groups
+                        $this->getGroups();
+                    } elseif (count($arrQueryUri) == 5) {
+                        // "/genapi.php/groups/{group name}" Endpoint - returns list of members of specific group
+                        $this->getGroupMembers($arrQueryUri[4]);
+                    }
+                    break;
+                case "POST":
+                    if (count($arrQueryUri) == 5) {
+                        // "/genapi.php/groups/{group name}" Endpoing - creates group
+                        $this->addGroup($arrQueryUri[4]);
+                    } elseif (count($arrQueryUri) == 6) {
+                        // "/genapi.php/groups/{group name}/{member}" Endpoint - adds member to group
+                        $this->addGroupMember($arrQueryUri[4], $arrQueryUri[5]);
+                    }
+                    break;
+                case "DELETE":
+                    if (count($arrQueryUri) == 5) {
+                        // "/genapi.php/groups/{group name}" Endpoint - deletes group
+                        $this->deleteGroup($arrQueryUri[4]);
+                    } elseif (count($arrQueryUri) == 6) {
+                        // "/genapi.php/groups/{group name}/{member}" Endpoint - removes member from group
+                        $this->removeGroupMember($arrQueryUri[4], $arrQueryUri[5]);
+                    }
+                    break;
+                default:
+                    $strErrorDesc = $requestMethod . " is not supported for files endpoint.";
+                    $this->logger->warning("The endpoint doesn't exist for the requested method.", ['requestMethod' => $requestMethod]);
+                    return $this->sendError405Output($strErrorDesc);
+                    break;
             }
-        } elseif ($requestMethod == "POST") {
-            if (count($arrQueryUri) == 5) {
-                // "/genapi.php/groups/{group name}" Endpoing - creates group
-                $this->addGroup($arrQueryUri[4]);
-            } elseif (count($arrQueryUri) == 6) {
-                // "/genapi.php/groups/{group name}/{member}" Endpoint - adds member to group
-                $this->addGroupMember($arrQueryUri[4], $arrQueryUri[5]);
-            } else {
-                $strErrorDesc =
-                    $requestMethod .
-                    " " .
-                    $this->getUri() .
-                    " is not an available Method and Endpoint";
-
-                $this->sendError404Output($strErrorDesc);
-            }
-        } elseif ($requestMethod == "DELETE") {
-            if (count($arrQueryUri) == 5) {
-                // "/genapi.php/groups/{group name}" Endpoint - deletes group
-                $this->deleteGroup($arrQueryUri[4]);
-            } elseif (count($arrQueryUri) == 6) {
-                // "/genapi.php/groups/{group name}/{member}" Endpoint - removes member from group
-                $this->removeGroupMember($arrQueryUri[4], $arrQueryUri[5]);
-            } else {
-                $strErrorDesc =
-                    $requestMethod .
-                    " " .
-                    $this->getUri() .
-                    " is not an available Method and Endpoint";
-
-                $this->sendError404Output($strErrorDesc);
-            }
-        }
-        // unsupported method
-        else {
-            $strErrorDesc =
-                $requestMethod . " is not an available request Method";
-
-            $this->sendError405Output($strErrorDesc);
+        } catch (\Exception $e) {
+            $this->logger->error("Exception occurred in handle method", ['exception' => $e->getMessage()]);
+            return $this->sendError400Output($e->getMessage());
         }
     }
-
-    /**
-     * Returns array of array of occ group:list output
-     */
-    private function parseGroups($groups)
-    {
-        // Building json file from occ output
-        $jsonArr = [];
-        $group = "";
-
-        foreach ($groups as $var) {
-            // Group name found
-            if ($this->endsWith($var, ":")) {
-                $group = rtrim(substr($var, 4), ":"); // parse out group
-                $jsonArr[$group] = [];
-            }
-            // member found
-            else {
-                $member = substr($var, 6); // parse out member
-                array_push($jsonArr[$group], $member);
-            }
-
-            unset($var);
-        }
-
-        return $jsonArr;
-    }
-
     /**
      * "-X GET /groups" Endpoint - Get list of all groups
      */
     private function getGroups()
     {
         $command = parent::$occ . " group:list";
-        if (exec($command, $arrGroup)) {
-            $responseData = json_encode($this->parseGroups($arrGroup));
-            $this->sendOkayOutput($responseData);
-
-            return $responseData;
+        exec($command, $output, $returnVar);
+        if ($returnVar === 0) {
+            $this->logger->info("Groups listed successfully.");
+            return $this->sendOkayOutput(json_encode(['groups' => $output]));
+        } else {
+            $this->logger->error("Error listing groups.");
+            return $this->sendError500Output("Failed to list groups.");
         }
     }
 
     /**
      * "-X GET /groups/{group name}" Endpoint - Get list of all members of given group
      */
-    private function getGroupMembers($group)
+    private function getGroupMembers($groupName)
     {
-        $command = parent::$occ . " group:list";
-        if (exec($command, $arrGroup)) {
-            $responseData = json_encode($this->parseGroups($arrGroup)[$group]);
-
-            $this->sendOkayOutput($responseData);
-            return $responseData;
+        $command = parent::$occ . " group:list --output=json";
+        exec($command, $output, $returnVar);
+        $groups = json_decode(implode("\n", $output), true);
+        if (isset($groups[$groupName])) {
+            $this->logger->info("Group members listed successfully.", ['group' => $groupName]);
+            return $this->sendOkayOutput(json_encode(['members' => $groups[$groupName]]));
+        } else {
+            $this->logger->error("Error listing group members.", ['group' => $groupName]);
+            return $this->sendError404Output("Group not found.");
         }
     }
 
     /**
      * "-X POST /groups/{group name}" Endpoint - Create group
      */
-    private function addGroup($group)
+    private function addGroup($groupName)
     {
-        $command = parent::$occ . " group:add " . $group;
-        if (exec($command, $arrGroup)) {
-            $responseData = json_encode($arrGroup);
-
-            $this->sendCreatedOutput($responseData);
-            return $responseData;
+        $command = parent::$occ . " group:add '" . $groupName . "'";
+        exec($command, $output, $returnVar);
+        if ($returnVar === 0) {
+            $this->logger->info("Group added successfully.", ['group' => $groupName]);
+            return $this->sendCreatedOutput("Group '{$groupName}' created.");
+        } else {
+            $this->logger->error("Error adding group.", ['group' => $groupName]);
+            return $this->sendError500Output("Failed to add group '{$groupName}'.");
         }
     }
-
     /**
      * "-X POST /groups/{group name}/{member}" Endpoint - Add member to group
      */
-    private function addGroupMember($group, $member)
+    private function addGroupMember($groupName, $memberName)
     {
-        $command = parent::$occ . " group:adduser " . $group . " " . $member;
-        if (exec($command, $arrGroup)) {
-            $responseData = json_encode($arrGroup);
+        $command = parent::$occ . " group:adduser '" . $memberName . "' '" . $groupName . "'";
 
-            $this->sendCreatedOutput($responseData);
-            return $responseData;
+        exec($command, $output, $returnVar);
+        if ($returnVar === 0) {
+            $this->logger->info("Member added to group successfully.", ['group' => $groupName, 'member' => $memberName]);
+            return $this->sendCreatedOutput("Member '{$memberName}' added to group '{$groupName}'.");
+        } else {
+            $this->logger->error("Error adding member to group.", ['group' => $groupName, 'member' => $memberName]);
+            return $this->sendError500Output("Failed to add member '{$memberName}' to group '{$groupName}'.");
         }
     }
 
     /**
      * -X DELETE /groups/{group name}" Endpoint - Delete group
      */
-    private function deleteGroup($group)
+    private function deleteGroup($groupName)
     {
-        $command = parent::$occ . " group:delete " . $group;
-        if (exec($command, $arrGroup)) {
-            $responseData = json_encode($arrGroup);
-
-            $this->sendOkayOutput($responseData);
-            return $responseData;
+        $command = parent::$occ . " group:delete '" . $groupName . "'";
+        exec($command, $output, $returnVar);
+        if ($returnVar === 0) {
+            $this->logger->info("Group deleted successfully.", ['group' => $groupName]);
+            return $this->sendOkayOutput("Group '{$groupName}' deleted.");
+        } else {
+            $this->logger->error("Error deleting group.", ['group' => $groupName]);
+            return $this->sendError500Output("Failed to delete group '{$groupName}'.");
         }
     }
 
     /**
      * "-X DELETE /groups/{group name}/{member}" Endpoint - Remove member from group
      */
-    private function removeGroupMember($group, $member)
+    private function removeGroupMember($groupName, $memberName)
     {
-        $command = parent::$occ . " group:removeuser " . $group . " " . $member;
-        if (exec($command, $arrGroup)) {
-            $responseData = json_encode($arrGroup);
-
-            $this->sendOkayOutput($responseData);
-            return $responseData;
+        $command = parent::$occ . " group:removeuser '" . $memberName . "' '" . $groupName . "'";
+        exec($command, $output, $returnVar);
+        if ($returnVar === 0) {
+            $this->logger->info("Member removed from group successfully.", ['group' => $groupName, 'member' => $memberName]);
+            return $this->sendOkayOutput("Member '{$memberName}' removed from group '{$groupName}'.");
+        } else {
+            $this->logger->error("Error removing member from group.", ['group' => $groupName, 'member' => $memberName]);
+            return $this->sendError500Output("Failed to remove member '{$memberName}' from group '{$groupName}'.");
         }
     }
 }

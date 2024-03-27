@@ -7,7 +7,7 @@ require_once __DIR__ . "/endpoints/FilesController.php";
 require_once __DIR__ . "/endpoints/ExtstoragesController.php";
 require_once __DIR__ . "/endpoints/GroupsController.php";
 require_once __DIR__ . "/endpoints/HeadersController.php";
-require_once __DIR__ . "/endpoints/TestsController.php";
+require_once __DIR__ . "/endpoints/TestController.php";
 require_once __DIR__ . "/endpoints/UsersController.php";
 
 class FunctionController extends \NamespaceBase\BaseController
