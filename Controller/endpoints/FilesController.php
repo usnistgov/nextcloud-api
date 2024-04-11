@@ -33,10 +33,10 @@ class FilesController extends \NamespaceBase\BaseController
     {
         $this->logger->info("Handling Files", ['method' => $this->getRequestMethod(), 'uri' => $this->getUriSegments()]);
         try {
-            $strErrorDesc = "";
 
             $requestMethod = $this->getRequestMethod();
             $arrQueryUri = $this->getUriSegments();
+            $queryUri = $this->getUri();
 
             switch ($requestMethod) {
                 case "POST":
@@ -76,6 +76,8 @@ class FilesController extends \NamespaceBase\BaseController
                             $dir .= "/" . $arrQueryUri[$i];
                         }
                         $this->shareGroup($group, $perm, $dir);
+                    } else {
+                        return $this->sendUnsupportedEndpointResponse($requestMethod, $queryUri);
                     }
                     break;
                 case "PUT":
@@ -109,6 +111,9 @@ class FilesController extends \NamespaceBase\BaseController
                             $dir .= "/" . $arrQueryUri[$i];
                         }
                         $this->putUserPermissions($user, $perm, $dir);
+                    } elseif (count($arrQueryUri) == 5) {
+                        // "/genapi.php/files/scan" Endpoint - scans all file systems
+                        $this->scanAllFiles();
                     } elseif ($arrQueryUri[4] == "scan" && $arrQueryUri[5] == "directory") {
                         // "/genapi.php/files/scan/directory/{directory path}" Endpoint - scan directory's file system
                         $dir = $arrQueryUri[6];
@@ -116,12 +121,11 @@ class FilesController extends \NamespaceBase\BaseController
                             $dir .= "/" . $arrQueryUri[$i];
                         }
                         $this->scanDirectoryFiles($dir);
-                    } elseif (count($arrQueryUri) == 5) {
-                        // "/genapi.php/files/scan" Endpoint - scans all file systems
-                        $this->scanAllFiles();
                     } elseif (count($arrQueryUri) == 6) {
                         // "/genapi.php/files/scan/{user}" Endpoint - scan user's file system
                         $this->scanUserFiles($arrQueryUri[5]);
+                    } else {
+                        return $this->sendUnsupportedEndpointResponse($requestMethod, $queryUri);
                     }
                     break;
                 case "GET":
@@ -146,6 +150,8 @@ class FilesController extends \NamespaceBase\BaseController
                             $dir .= "/" . $arrQueryUri[$i];
                         }
                         $this->getUserPermissions($dir);
+                    } else {
+                        return $this->sendUnsupportedEndpointResponse($requestMethod, $queryUri);
                     }
                     break;
                 case "DELETE":
@@ -171,12 +177,12 @@ class FilesController extends \NamespaceBase\BaseController
                             $filepath .= "/" . $arrQueryUri[$i];
                         }
                         $this->deleteFile($filepath);
+                    } else {
+                        return $this->sendUnsupportedEndpointResponse($requestMethod, $queryUri);
                     }
                     break;
                 default:
-                    $strErrorDesc = $requestMethod . " is not supported for files endpoint.";
-                    $this->logger->warning("The endpoint doesn't exist for the requested method.", ['requestMethod' => $requestMethod]);
-                    return $this->sendError405Output($strErrorDesc);
+                    return $this->sendUnsupportedEndpointResponse($requestMethod, $queryUri);
                     break;
             }
         } catch (\Exception $e) {
@@ -195,10 +201,9 @@ class FilesController extends \NamespaceBase\BaseController
                 'auth' => [parent::$oar_api_usr, parent::$oar_api_pwd]
             ]);
 
-            if ($response->getStatusCode() === 200) {
+            if ($response->getStatusCode() === 200 || $response->getStatusCode() === 204) {
                 $this->logger->info("File deleted successfully", ['filePath' => $filePath]);
-                $responseData = (string) $response->getBody();
-                return $this->sendOkayOutput($responseData);
+                return $this->sendOkayOutput("File deleted successfully");
             } else {
                 $this->logger->warning("Failed to delete the file with status code", ['filePath' => $filePath, 'statusCode' => $response->getStatusCode()]);
                 return $this->sendError500Output('Failed to delete the file.');
@@ -243,11 +248,8 @@ class FilesController extends \NamespaceBase\BaseController
                 return $this->sendError404Output('File not found.');
             }
 
+            $responseData = $response->getBody()->getContents();
             $this->logger->info("File retrieved successfully", ['filePath' => $filePath]);
-            $responseData = json_encode([
-                'metadata' => $metadata,
-            ]);
-
             return $this->sendOkayOutput($responseData);
         } catch (GuzzleException $e) {
             $this->logger->error("Failed to retrieve the file metadata", ['filePath' => $filePath, 'error' => $e->getMessage()]);
@@ -280,8 +282,11 @@ class FilesController extends \NamespaceBase\BaseController
 
             if ($response->getStatusCode() === 200 || $response->getStatusCode() === 201) {
                 $this->logger->info("File uploaded successfully", ['path' => $fullDestinationPath]);
-                $responseData = (string) $response->getBody();
-                return $this->sendCreatedOutput($responseData);
+                $successData = [
+                    'message' => 'File uploaded successfully',
+                    'path' => $fullDestinationPath
+                ];
+                return $this->sendCreatedOutput(json_encode($successData));
             } else {
                 $this->logger->warning("File upload failed with status code", ['path' => $fullDestinationPath, 'statusCode' => $response->getStatusCode()]);
                 return $this->sendError500Output("File upload failed!");
@@ -299,7 +304,24 @@ class FilesController extends \NamespaceBase\BaseController
     {
         if (!$localFilePath || !file_exists($localFilePath)) {
             $this->logger->error("Local file path invalid or file does not exist", ['localFilePath' => $localFilePath]);
-            return $this->sendError500Output("Local file path invalid or file does not exist!");
+            return $this->sendError404Output("Local file path invalid or file does not exist!");
+        }
+
+        try {
+            $checkResponse = $this->guzzleClient->request('HEAD', "/remote.php/dav/files/oar_api/" . ltrim($destinationPath, '/'));
+
+            if ($checkResponse->getStatusCode() !== 200) {
+                $this->logger->error("Remote file does not exist", ['destinationPath' => $destinationPath]);
+                return $this->sendError404Output("File does not exist and cannot be updated.");
+            }
+        } catch (GuzzleException $e) {
+            if ($e->getCode() === 404) {
+                $this->logger->error("Remote file does not exist", ['destinationPath' => $destinationPath, 'error' => $e->getMessage()]);
+                return $this->sendError404Output("File does not exist and cannot be updated.");
+            } else {
+                $this->logger->error("Error checking file existence", ['destinationPath' => $destinationPath, 'error' => $e->getMessage()]);
+                return $this->sendError500Output("Failed to check if file exists. Error: " . $e->getMessage());
+            }
         }
 
         try {
@@ -311,8 +333,7 @@ class FilesController extends \NamespaceBase\BaseController
             ]);
 
             $this->logger->info("File updated successfully", ['destinationPath' => $destinationPath]);
-            $responseData = $response->getBody()->getContents();
-            return $this->sendOkayOutput($responseData);
+            return $this->sendOkayOutput("File updated successfully");
         } catch (GuzzleException $e) {
             $this->logger->error("File update failed", ['destinationPath' => $destinationPath, 'error' => $e->getMessage()]);
             return $this->sendError500Output("File update failed! Error: " . $e->getMessage());
@@ -324,7 +345,6 @@ class FilesController extends \NamespaceBase\BaseController
      */
     private function postDirectory($dir)
     {
-        $this->guzzleClient = $this->getGuzzleClient();
         try {
             $response = $this->guzzleClient->request('MKCOL', "/remote.php/dav/files/oar_api/" . $dir);
             if ($response->getStatusCode() === 200 || $response->getStatusCode() === 201) {
@@ -368,7 +388,8 @@ class FilesController extends \NamespaceBase\BaseController
         try {
             $response = $this->guzzleClient->request('DELETE', "/remote.php/dav/files/oar_api/" . $dir);
             $this->logger->info("Directory deleted successfully", ['dir' => $dir]);
-            return $this->sendOkayOutput($response);
+            $responseData = $response->getBody()->getContents();
+            return $this->sendOkayOutput($responseData);
         } catch (GuzzleException $e) {
             $this->logger->error("Failed to delete directory", ['path' => $dir, 'error' => $e->getMessage()]);
             return $this->sendError500Output("Failed to delete directory. " . $e->getMessage());
@@ -417,7 +438,7 @@ class FilesController extends \NamespaceBase\BaseController
             $responseData = json_encode($scanResults);
             return $this->sendOkayOutput($responseData);
         } else {
-            $this->logger->error("scanUserFiles command failed", ['command' => $command, 'user' => $user, 'returnVar' => $returnVar]);
+            $this->logger->error("Failed to scan user files", ['command' => $command, 'user' => $user, 'returnVar' => $returnVar]);
             return $this->sendError500Output("Failed to scan files.");
         }
     }
@@ -472,9 +493,29 @@ class FilesController extends \NamespaceBase\BaseController
             $this->logger->info("User permissions posted successfully", ['user' => $user, 'permissions' => $perm, 'dir' => $dir]);
             $responseData = $response->getBody()->getContents();
             return $this->sendCreatedOutput($responseData);
-        } catch (GuzzleException $e) {
+        } catch (\GuzzleHttp\Exception\RequestException $e) {
+            $response = $e->getResponse();
+            $statusCode = $response ? $response->getStatusCode() : 0;
+            $responseBody = $response ? (string) $response->getBody() : '';
+
+            if ($statusCode === 404) {
+                if (strpos($responseBody, 'valid user') !== false) {
+                    $this->logger->error("Invalid user specified", ['user' => $user, 'error' => $e->getMessage()]);
+                    return $this->sendError404Output("Invalid user specified. Please specify a valid user.");
+                } else if (strpos($responseBody, 'folder does not exist') !== false) {
+                    $this->logger->error("Directory does not exist", ['dir' => $dir, 'error' => $e->getMessage()]);
+                    return $this->sendError404Output("Directory does not exist. Please specify a valid directory.");
+                } else {
+                    $this->logger->error("Failed to post user permissions", ['user' => $user, 'permissions' => $perm, 'dir' => $dir, 'error' => $e->getMessage()]);
+                    return $this->sendError404Output("Permission does not exist. Please specify a valid permission number.");
+                }
+            } else {
+                $this->logger->error("Failed to post user permissions", ['user' => $user, 'permissions' => $perm, 'dir' => $dir, 'error' => $e->getMessage()]);
+                return $this->sendError500Output("Failed to share file/folder with user. " . $e->getMessage());
+            }
+        } catch (\GuzzleHttp\Exception\GuzzleException $e) {
             $this->logger->error("Failed to post user permissions", ['user' => $user, 'permissions' => $perm, 'dir' => $dir, 'error' => $e->getMessage()]);
-            return $this->sendError500Output("Failed to share file/folder with user. " . $e->getMessage());
+            return $this->sendError500Output("An unexpected error occurred. " . $e->getMessage());
         }
     }
 
@@ -503,42 +544,6 @@ class FilesController extends \NamespaceBase\BaseController
             return $this->sendError404Output("Failed to get user permissions. " . $e->getMessage());
         }
     }
-
-
-    /**
-     * "-X PUT /files/userpermissions/{user}/{permissions}/{directory}" Endpoint - Modify user permissions to directory
-     */
-    private function putUserPermissions($user, $perm, $dir)
-    {
-        // Delete existing permissions
-        $deleteSuccessful = $this->deleteUserPermissions($user, $dir);
-
-        // If the deletion was successful, add new permissions
-        if ($deleteSuccessful) {
-            try {
-                // Try to add new permissions
-                $postResult = $this->postUserPermissions($user, $perm, $dir);
-
-                if ($postResult) {
-                    // Success path: permissions were successfully modified
-                    $this->logger->info("User permissions modified successfully", ['user' => $user, 'permissions' => $perm, 'dir' => $dir]);
-                    return true;
-                } else {
-                    // Failed to add new permissions after deletion
-                    $this->logger->error("Failed to modify user permissions after deleting old ones", ['user' => $user, 'dir' => $dir]);
-                    return $this->sendError500Output("Failed to add new permissions after deleting the old ones.");
-                }
-            } catch (GuzzleException $e) {
-                $this->logger->error("Exception occurred while modifying user permissions", ['user' => $user, 'dir' => $dir, 'error' => $e->getMessage()]);
-                return $this->sendError500Output("Failed to modify user permissions: " . $e->getMessage());
-            }
-        } else {
-            // Deletion failed, report back
-            $this->logger->error("Failed to delete existing permissions, cannot modify", ['user' => $user, 'dir' => $dir]);
-            return $this->sendError500Output("Failed to delete existing permissions.");
-        }
-    }
-
 
     /**
      * "-X DELETE /files/userpermissions/{user}/{directory}" Endpoint - Delete user permissions to directory
@@ -610,9 +615,29 @@ class FilesController extends \NamespaceBase\BaseController
             $this->logger->info("Directory shared with group successfully", ['group' => $group, 'permissions' => $perm, 'dir' => $dir]);
             $responseData = $response->getBody()->getContents();
             return $this->sendCreatedOutput($responseData);
-        } catch (GuzzleException $e) {
+        } catch (\GuzzleHttp\Exception\RequestException $e) {
+            $response = $e->getResponse();
+            $statusCode = $response ? $response->getStatusCode() : 0;
+            $responseBody = $response ? (string) $response->getBody() : '';
+
+            if ($statusCode === 404) {
+                if (strpos($responseBody, 'valid group') !== false) {
+                    $this->logger->error("Invalid group specified", ['group' => $group, 'error' => $e->getMessage()]);
+                    return $this->sendError404Output("Invalid group specified. Please specify a valid group.");
+                } else if (strpos($responseBody, 'folder does not exist') !== false) {
+                    $this->logger->error("Directory does not exist", ['dir' => $dir, 'error' => $e->getMessage()]);
+                    return $this->sendError404Output("Directory does not exist. Please specify a valid directory.");
+                } else {
+                    $this->logger->error("Failed to share directory with group", ['group' => $group, 'permissions' => $perm, 'dir' => $dir, 'error' => $e->getMessage()]);
+                    return $this->sendError404Output("Permission does not exist. Please specify a valid permission number.");
+                }
+            } else {
+                $this->logger->error("Failed to share directory with group", ['group' => $group, 'permissions' => $perm, 'dir' => $dir, 'error' => $e->getMessage()]);
+                return $this->sendError500Output("Failed to share file/folder with group. " . $e->getMessage());
+            }
+        } catch (\GuzzleHttp\Exception\GuzzleException $e) {
             $this->logger->error("Failed to share directory with group", ['group' => $group, 'permissions' => $perm, 'dir' => $dir, 'error' => $e->getMessage()]);
-            return $this->sendError500Output("Failed to share file/folder with group. " . $e->getMessage());
+            return $this->sendError500Output("An unexpected error occurred. " . $e->getMessage());
         }
     }
 }

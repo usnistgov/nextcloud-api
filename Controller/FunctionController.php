@@ -92,11 +92,11 @@ class FunctionController extends \NamespaceBase\BaseController
                     break;
                 default:
                     //Unavailable/unsupported resource
-                    $this->sendError404Output("{$resource} is not an available resource");
+                    return $this->sendError404Output("{$resource} is not an available resource");
                     break;
             }
         } catch (\Exception $e) {
-            $this->send500ErrorResponse($e->getMessage());
+            return $this->send500ErrorResponse($e->getMessage());
         }
     }
 

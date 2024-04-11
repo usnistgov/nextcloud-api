@@ -38,6 +38,13 @@ class BaseController
 
 	}
 
+	protected function sendUnsupportedEndpointResponse($requestMethod, $queryUri)
+	{
+		$strErrorDesc = "The requested endpoint " . $requestMethod . ": " . $queryUri . " is not supported by this API.";
+		$this->logger->warning("Unsupported endpoint requested.");
+		return $this->sendError405Output($strErrorDesc);
+	}
+
 	protected function loadConfiguration()
 	{
 		$configFilePath = __DIR__ . '/../config/custom_config.php';

@@ -24,6 +24,7 @@ class GroupsController extends \NamespaceBase\BaseController
 
         $requestMethod = $this->getRequestMethod();
         $arrQueryUri = $this->getUriSegments();
+        $queryUri = $this->getUri();
 
         try {
             switch ($requestMethod) {
@@ -34,6 +35,8 @@ class GroupsController extends \NamespaceBase\BaseController
                     } elseif (count($arrQueryUri) == 5) {
                         // "/genapi.php/groups/{group name}" Endpoint - returns list of members of specific group
                         $this->getGroupMembers($arrQueryUri[4]);
+                    } else {
+                        return $this->sendUnsupportedEndpointResponse($requestMethod, $queryUri);
                     }
                     break;
                 case "POST":
@@ -43,6 +46,8 @@ class GroupsController extends \NamespaceBase\BaseController
                     } elseif (count($arrQueryUri) == 6) {
                         // "/genapi.php/groups/{group name}/{member}" Endpoint - adds member to group
                         $this->addGroupMember($arrQueryUri[4], $arrQueryUri[5]);
+                    } else {
+                        return $this->sendUnsupportedEndpointResponse($requestMethod, $queryUri);
                     }
                     break;
                 case "DELETE":
@@ -52,12 +57,12 @@ class GroupsController extends \NamespaceBase\BaseController
                     } elseif (count($arrQueryUri) == 6) {
                         // "/genapi.php/groups/{group name}/{member}" Endpoint - removes member from group
                         $this->removeGroupMember($arrQueryUri[4], $arrQueryUri[5]);
+                    } else {
+                        return $this->sendUnsupportedEndpointResponse($requestMethod, $queryUri);
                     }
                     break;
                 default:
-                    $strErrorDesc = $requestMethod . " is not supported for files endpoint.";
-                    $this->logger->warning("The endpoint doesn't exist for the requested method.", ['requestMethod' => $requestMethod]);
-                    return $this->sendError405Output($strErrorDesc);
+                    return $this->sendUnsupportedEndpointResponse($requestMethod, $queryUri);
                     break;
             }
         } catch (\Exception $e) {
@@ -113,13 +118,13 @@ class GroupsController extends \NamespaceBase\BaseController
             return $this->sendError500Output("Failed to add group '{$groupName}'.");
         }
     }
+    
     /**
      * "-X POST /groups/{group name}/{member}" Endpoint - Add member to group
      */
     private function addGroupMember($groupName, $memberName)
     {
-        $command = parent::$occ . " group:adduser '" . $memberName . "' '" . $groupName . "'";
-
+        $command = parent::$occ . " group:adduser '" . $groupName . "' '" . $memberName . "'";
         exec($command, $output, $returnVar);
         if ($returnVar === 0) {
             $this->logger->info("Member added to group successfully.", ['group' => $groupName, 'member' => $memberName]);
@@ -151,7 +156,7 @@ class GroupsController extends \NamespaceBase\BaseController
      */
     private function removeGroupMember($groupName, $memberName)
     {
-        $command = parent::$occ . " group:removeuser '" . $memberName . "' '" . $groupName . "'";
+        $command = parent::$occ . " group:removeuser '" . $groupName . "' '" . $memberName . "'";
         exec($command, $output, $returnVar);
         if ($returnVar === 0) {
             $this->logger->info("Member removed from group successfully.", ['group' => $groupName, 'member' => $memberName]);

@@ -30,6 +30,7 @@ class ExtStoragesController extends \NamespaceBase\BaseController
         try {
             $requestMethod = $this->getRequestMethod();
             $arrQueryUri = $this->getUriSegments();
+            $queryUri = $this->getUri();
 
             switch ($requestMethod) {
                 case "GET":
@@ -40,6 +41,8 @@ class ExtStoragesController extends \NamespaceBase\BaseController
                         // /genapi.php/extstorages/{storage id} endpoint - get specific external storage
 
                         $this->getExtStorage($arrQueryUri[4]);
+                    } else {
+                        return $this->sendUnsupportedEndpointResponse($requestMethod, $queryUri);
                     }
                     break;
 
@@ -53,6 +56,8 @@ class ExtStoragesController extends \NamespaceBase\BaseController
                         // /genapi.php/extstorages/s3/{name} endpoint - create external storage of type s3 (not configured)
 
                         $arrQueryUri[4] == "local" ? $this->createLocalExtStorage($arrQueryUri[5]) : $this->createS3ExtStorage($arrQueryUri[5]);
+                    } else {
+                        return $this->sendUnsupportedEndpointResponse($requestMethod, $queryUri);
                     }
                     break;
 
@@ -63,6 +68,8 @@ class ExtStoragesController extends \NamespaceBase\BaseController
 
                         $value = implode("/", array_slice($arrQueryUri, 7));
                         $arrQueryUri[5] == "config" ? $this->setConfigExtStorage($arrQueryUri[4], $arrQueryUri[6], $value) : $this->setOptionExtStorage($arrQueryUri[4], $arrQueryUri[6], $value);
+                    } else {
+                        return $this->sendUnsupportedEndpointResponse($requestMethod, $queryUri);
                     }
                     break;
 
@@ -76,12 +83,13 @@ class ExtStoragesController extends \NamespaceBase\BaseController
                         // /genapi.php/extstorages/{storage id}/groups/{group} endpoint - remove group from external storage applicable groups
 
                         $arrQueryUri[5] == "users" ? $this->removeUserExtStorage($arrQueryUri[4], $arrQueryUri[6]) : $this->removeGroupExtStorage($arrQueryUri[4], $arrQueryUri[6]);
+                    } else {
+                        return $this->sendUnsupportedEndpointResponse($requestMethod, $queryUri);
                     }
                     break;
 
                 default:
-                    $strErrorDesc = $requestMethod . " is not an available request Method";
-                    return $this->sendError405Output($strErrorDesc);
+                    return $this->sendUnsupportedEndpointResponse($requestMethod, $queryUri);
                     break;
             }
         } catch (\Exception $e) {
