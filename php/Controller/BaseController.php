@@ -2,9 +2,69 @@
 
 namespace NamespaceBase;
 
+use GuzzleHttp\Client;
+use Monolog\Logger;
+use Monolog\Handler\StreamHandler;
 
 class BaseController
 {
+
+	protected static $occ = "php /var/www/html/occ";
+	protected static $oar_api_login = "";
+	protected static $oar_api_usr = "";
+	protected static $oar_api_pwd = "";
+	protected static $nextcloud_base = "";
+	protected static $dbhost = "";
+	protected static $dbuser = "";
+	protected static $dbpass = "";
+	protected static $dbname = "";
+
+	protected $guzzleClient;
+    protected $logger;
+
+	public function __construct()
+	{
+		$this->loadConfiguration();
+		$this->logger = new Logger('LoggerFM');
+		$this->logger->pushHandler(new StreamHandler(__DIR__.'/Logs.log', Logger::DEBUG));
+
+		$this->guzzleClient = new Client([
+			'base_uri' => self::$nextcloud_base,
+			'auth' => [self::$oar_api_usr, self::$oar_api_pwd],
+			'headers' => [
+				'Accept' => 'application/json',
+			],
+		]);
+
+	}
+
+	protected function sendUnsupportedEndpointResponse($requestMethod, $queryUri)
+	{
+		$strErrorDesc = "The requested endpoint " . $requestMethod . ": " . $queryUri . " is not supported by this API.";
+		$this->logger->warning("Unsupported endpoint requested.");
+		return $this->sendError405Output($strErrorDesc);
+	}
+
+	protected function loadConfiguration()
+	{
+		$configFilePath = __DIR__ . '/../config/custom_config.php';
+		if (!file_exists($configFilePath)) {
+			$this->sendError500Output("Config file not found: {$configFilePath}");
+			return;
+		}
+
+		$config = require $configFilePath;
+
+		self::$oar_api_login = $config['user_pass'];
+		self::$dbhost = $config['db_host'];
+		self::$dbuser = $config['mariadb_user'];
+		self::$dbpass = $config['mariadb_password'];
+		self::$dbname = $config['mariadb_database'];
+		self::$nextcloud_base = $config['nextcloud_base'];
+		list(self::$oar_api_usr, self::$oar_api_pwd) = explode(':', self::$oar_api_login);
+	}
+
+
 	/**
 	 * __call magic method
 	 */
@@ -18,9 +78,9 @@ class BaseController
 	 */
 	protected function getUri()
 	{
-        $requestUri = $_SERVER['REQUEST_URI'];
-        $path = $this->extractPathFromRequestUri($requestUri);
-        return $path;	
+		$requestUri = $_SERVER['REQUEST_URI'];
+		$path = $this->extractPathFromRequestUri($requestUri);
+		return $path;
 	}
 
 	/**
@@ -31,23 +91,23 @@ class BaseController
 	protected function getUriSegments()
 	{
 		$requestUri = $_SERVER['REQUEST_URI'];
-        $path = $this->extractPathFromRequestUri($requestUri);
-        $segments = explode('/', $path);
-        return $segments;
+		$path = $this->extractPathFromRequestUri($requestUri);
+		$segments = explode('/', $path);
+		return $segments;
 	}
 
 	/**
-     * Extract the path from the request URI.
-     *
-     * @param string $requestUri The request URI.
-     * @return string The extracted path.
-     */
-    protected function extractPathFromRequestUri($requestUri)
-    {
-        // Check for query string and remove it if present
-        $path = explode('?', $requestUri)[0];
-        return $path;
-    }
+	 * Extract the path from the request URI.
+	 *
+	 * @param string $requestUri The request URI.
+	 * @return string The extracted path.
+	 */
+	protected function extractPathFromRequestUri($requestUri)
+	{
+		// Check for query string and remove it if present
+		$path = explode('?', $requestUri)[0];
+		return $path;
+	}
 
 	/**
 	 * Get querystring params
@@ -146,6 +206,19 @@ class BaseController
 	}
 
 	/**
+	 * Send API output 400 error
+	 * 
+	 * @param string $strErrorDesc
+	 */
+	protected function sendError400Output($strErrorDesc)
+	{
+		$strErrorHeader = 'HTTP/1.1 400 Bad Request';
+
+		$this->sendErrorOutput($strErrorDesc, $strErrorHeader);
+	}
+
+
+	/**
 	 * Send API output 404 error
 	 * 
 	 * @param string $strErrorDesc
@@ -165,6 +238,18 @@ class BaseController
 	protected function sendError405Output($strErrorDesc)
 	{
 		$strErrorHeader = 'HTTP/1.1 405 Method not allowed';
+
+		$this->sendErrorOutput($strErrorDesc, $strErrorHeader);
+	}
+
+	/**
+	 * Send API output 500 error
+	 * 
+	 * @param string $strErrorDesc
+	 */
+	protected function sendError500Output($strErrorDesc)
+	{
+		$strErrorHeader = 'HTTP/1.1 500 Internal Server Error';
 
 		$this->sendErrorOutput($strErrorDesc, $strErrorHeader);
 	}
