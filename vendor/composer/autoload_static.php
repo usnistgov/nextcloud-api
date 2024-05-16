@@ -4,12 +4,15 @@
 
 namespace Composer\Autoload;
 
-class ComposerStaticInit61658f4d29f38280e862aef9ee9cf514
+class ComposerStaticInitf58d7ea080f056549dee61cf49afc2f8
 {
     public static $files = array (
         '6124b4c8570aa390c21fafd04a26c69f' => __DIR__ . '/..' . '/myclabs/deep-copy/src/DeepCopy/deep_copy.php',
         '9e7a8ca9c2c682ec2704dd873a0e3618' => __DIR__ . '/..' . '/php-mock/php-mock/autoload.php',
+        '7b11c4dc42b3b3023073cb14e519683c' => __DIR__ . '/..' . '/ralouphie/getallheaders/src/getallheaders.php',
         'ec07570ca5a812141189b1fa81503674' => __DIR__ . '/..' . '/phpunit/phpunit/src/Framework/Assert/Functions.php',
+        '6e3fae29631ef280660b3cdad06f25a8' => __DIR__ . '/..' . '/symfony/deprecation-contracts/function.php',
+        '37a3dc5111fe8f707ab4c132ef1dbc62' => __DIR__ . '/..' . '/guzzlehttp/guzzle/src/functions_include.php',
         'c72349b1fe8d0deeedd3a52e8aa814d8' => __DIR__ . '/..' . '/mockery/mockery/library/helpers.php',
         'ce9671a430e4846b44e1c68c7611f9f5' => __DIR__ . '/..' . '/mockery/mockery/library/Mockery.php',
         '125bba9b2a34259a2ab4c8f405781876' => __DIR__ . '/..' . '/php-mock/php-mock-phpunit/autoload.php',
@@ -24,11 +27,21 @@ class ComposerStaticInit61658f4d29f38280e862aef9ee9cf514
         ),
         'P' => 
         array (
+            'Psr\\Log\\' => 8,
+            'Psr\\Http\\Message\\' => 17,
+            'Psr\\Http\\Client\\' => 16,
             'PhpParser\\' => 10,
         ),
         'M' => 
         array (
+            'Monolog\\' => 8,
             'Mockery\\' => 8,
+        ),
+        'G' => 
+        array (
+            'GuzzleHttp\\Psr7\\' => 16,
+            'GuzzleHttp\\Promise\\' => 19,
+            'GuzzleHttp\\' => 11,
         ),
         'F' => 
         array (
@@ -55,13 +68,42 @@ class ComposerStaticInit61658f4d29f38280e862aef9ee9cf514
             0 => __DIR__ . '/..' . '/php-mock/php-mock/classes',
             1 => __DIR__ . '/..' . '/php-mock/php-mock/tests',
         ),
+        'Psr\\Log\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/psr/log/src',
+        ),
+        'Psr\\Http\\Message\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/psr/http-factory/src',
+            1 => __DIR__ . '/..' . '/psr/http-message/src',
+        ),
+        'Psr\\Http\\Client\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/psr/http-client/src',
+        ),
         'PhpParser\\' => 
         array (
             0 => __DIR__ . '/..' . '/nikic/php-parser/lib/PhpParser',
         ),
+        'Monolog\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/monolog/monolog/src/Monolog',
+        ),
         'Mockery\\' => 
         array (
             0 => __DIR__ . '/..' . '/mockery/mockery/library/Mockery',
+        ),
+        'GuzzleHttp\\Psr7\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/guzzlehttp/psr7/src',
+        ),
+        'GuzzleHttp\\Promise\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/guzzlehttp/promises/src',
+        ),
+        'GuzzleHttp\\' => 
+        array (
+            0 => __DIR__ . '/..' . '/guzzlehttp/guzzle/src',
         ),
         'Firebase\\JWT\\' => 
         array (
@@ -537,6 +579,7 @@ class ComposerStaticInit61658f4d29f38280e862aef9ee9cf514
         'PharIo\\Manifest\\ManifestLoader' => __DIR__ . '/..' . '/phar-io/manifest/src/ManifestLoader.php',
         'PharIo\\Manifest\\ManifestLoaderException' => __DIR__ . '/..' . '/phar-io/manifest/src/exceptions/ManifestLoaderException.php',
         'PharIo\\Manifest\\ManifestSerializer' => __DIR__ . '/..' . '/phar-io/manifest/src/ManifestSerializer.php',
+        'PharIo\\Manifest\\NoEmailAddressException' => __DIR__ . '/..' . '/phar-io/manifest/src/exceptions/NoEmailAddressException.php',
         'PharIo\\Manifest\\PhpElement' => __DIR__ . '/..' . '/phar-io/manifest/src/xml/PhpElement.php',
         'PharIo\\Manifest\\PhpExtensionRequirement' => __DIR__ . '/..' . '/phar-io/manifest/src/values/PhpExtensionRequirement.php',
         'PharIo\\Manifest\\PhpVersionRequirement' => __DIR__ . '/..' . '/phar-io/manifest/src/values/PhpVersionRequirement.php',
@@ -780,9 +823,9 @@ class ComposerStaticInit61658f4d29f38280e862aef9ee9cf514
     public static function getInitializer(ClassLoader $loader)
     {
         return \Closure::bind(function () use ($loader) {
-            $loader->prefixLengthsPsr4 = ComposerStaticInit61658f4d29f38280e862aef9ee9cf514::$prefixLengthsPsr4;
-            $loader->prefixDirsPsr4 = ComposerStaticInit61658f4d29f38280e862aef9ee9cf514::$prefixDirsPsr4;
-            $loader->classMap = ComposerStaticInit61658f4d29f38280e862aef9ee9cf514::$classMap;
+            $loader->prefixLengthsPsr4 = ComposerStaticInitf58d7ea080f056549dee61cf49afc2f8::$prefixLengthsPsr4;
+            $loader->prefixDirsPsr4 = ComposerStaticInitf58d7ea080f056549dee61cf49afc2f8::$prefixDirsPsr4;
+            $loader->classMap = ComposerStaticInitf58d7ea080f056549dee61cf49afc2f8::$classMap;
 
         }, null, ClassLoader::class);
     }
