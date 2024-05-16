@@ -91,8 +91,10 @@ class BaseController
 	protected function getUriSegments()
 	{
 		$requestUri = $_SERVER['REQUEST_URI'];
+
 		$path = $this->extractPathFromRequestUri($requestUri);
 		$segments = explode('/', $path);
+		
 		return $segments;
 	}
 

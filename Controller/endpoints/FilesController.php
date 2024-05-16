@@ -37,6 +37,8 @@ class FilesController extends \NamespaceBase\BaseController
             $arrQueryUri = $this->getUriSegments();
             $queryUri = $this->getUri();
 
+            
+
             switch ($requestMethod) {
                 case "POST":
                     if ($arrQueryUri[4] == "file") {
@@ -440,7 +442,15 @@ class FilesController extends \NamespaceBase\BaseController
     private function scanDirectoryFiles($dir)
     {
         try {
-            $response = $this->guzzleClient->request('PROPFIND', "/remote.php/dav/files/" . parent::$oar_api_usr . "/" . ltrim($dir, '/'), [
+            $dirComponents = explode('/', $dir); 
+
+            $encodedComponents = array_map(function($component) {
+                return urlencode($component);
+            }, $dirComponents);
+
+            $encodedPath = implode('/', $encodedComponents);
+
+            $response = $this->guzzleClient->request('PROPFIND', "/remote.php/dav/files/" . parent::$oar_api_usr . "/" . ltrim($encodedPath, '/'), [
                 'headers' => [
                     'Depth' => '1',
                     'Content-Type' => 'application/xml',
