@@ -17,7 +17,6 @@ use GuzzleHttp\Exception\GuzzleException;
  * - files/scan/{user}
  * - files/scan/directory/{directory path}
  * - files/file/{path to file}
- * - files/userpermissions/{user}/{permissions}/{directory}
  * GET
  * - files/file/{path to file}
  * - files/directory/{directory name}
@@ -37,6 +36,8 @@ class FilesController extends \NamespaceBase\BaseController
             $requestMethod = $this->getRequestMethod();
             $arrQueryUri = $this->getUriSegments();
             $queryUri = $this->getUri();
+
+            
 
             switch ($requestMethod) {
                 case "POST":
@@ -102,15 +103,6 @@ class FilesController extends \NamespaceBase\BaseController
 
                         // After the operation, delete the temporary file
                         unlink($tempFilePath);
-                    } elseif ($arrQueryUri[4] == "userpermissions") {
-                        // "/genapi.php/files/userpermissions/{user}/{permissions}/{directory}" Endpoint - Modify user permissions on directory
-                        $user = $arrQueryUri[5];
-                        $perm = $arrQueryUri[6];
-                        $dir = $arrQueryUri[7];
-                        for ($i = 8; $i < count($arrQueryUri); $i++) {
-                            $dir .= "/" . $arrQueryUri[$i];
-                        }
-                        $this->putUserPermissions($user, $perm, $dir);
                     } elseif (count($arrQueryUri) == 5) {
                         // "/genapi.php/files/scan" Endpoint - scans all file systems
                         $this->scanAllFiles();
@@ -450,7 +442,15 @@ class FilesController extends \NamespaceBase\BaseController
     private function scanDirectoryFiles($dir)
     {
         try {
-            $response = $this->guzzleClient->request('PROPFIND', "/remote.php/dav/files/" . parent::$oar_api_usr . "/" . ltrim($dir, '/'), [
+            $dirComponents = explode('/', $dir); 
+
+            $encodedComponents = array_map(function($component) {
+                return urlencode($component);
+            }, $dirComponents);
+
+            $encodedPath = implode('/', $encodedComponents);
+
+            $response = $this->guzzleClient->request('PROPFIND', "/remote.php/dav/files/" . parent::$oar_api_usr . "/" . ltrim($encodedPath, '/'), [
                 'headers' => [
                     'Depth' => '1',
                     'Content-Type' => 'application/xml',
