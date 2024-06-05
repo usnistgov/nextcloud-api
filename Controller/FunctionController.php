@@ -28,6 +28,34 @@ class FunctionController extends \NamespaceBase\BaseController
     public function __construct()
     {
         parent::__construct();
+        $this->verifyClientCertificate();
+    }
+
+    private function verifyClientCertificate()
+    {
+        # Check Valid Client Certificate
+        if (!isset($_SERVER['SSL_CLIENT_VERIFY']) || $_SERVER['SSL_CLIENT_VERIFY'] !== 'SUCCESS') {
+            header('HTTP/1.1 403 Forbidden');
+            echo json_encode(['error' => 'Client certificate verification failed']);
+            exit();
+        }
+
+        # Check CN
+        $config = require $configFilePath;
+        $expectedCN = $config['expected_cn'];
+        if (isset($_SERVER['SSL_CLIENT_S_DN_CN'])) {
+            $clientCN = $_SERVER['SSL_CLIENT_S_DN_CN'];
+            if ($clientCN !== $expectedCN) {
+                header('HTTP/1.1 403 Forbidden');
+                echo json_encode(['error' => 'Client certificate CN is not valid']);
+                exit();
+            }
+        } else {
+            header('HTTP/1.1 403 Forbidden');
+            echo json_encode(['error' => 'Client certificate CN not found']);
+            exit();
+        }
+        
     }
 
     public function getOarApiLogin()
