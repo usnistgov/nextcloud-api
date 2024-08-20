@@ -9,6 +9,8 @@ require_once __DIR__ . "/endpoints/GroupsController.php";
 require_once __DIR__ . "/endpoints/HeadersController.php";
 require_once __DIR__ . "/endpoints/TestController.php";
 require_once __DIR__ . "/endpoints/UsersController.php";
+require_once __DIR__ . "/endpoints/AuthController.php";
+
 
 class FunctionController extends \NamespaceBase\BaseController
 {
@@ -18,6 +20,7 @@ class FunctionController extends \NamespaceBase\BaseController
      * uri positions                0   1          2          3                   4+
      *
      * {resource} can be one of the following
+     * - Auth
      * - Files
      * - Users
      * - Groups
@@ -60,6 +63,11 @@ class FunctionController extends \NamespaceBase\BaseController
 
         try {
             switch ($resource) {
+                case "AUTH":
+                    // "/genapi.php/auth" endpoint
+                    $authController =  new AuthController();
+                    $authController->handle();
+                    break;
                 case "FILES":
                     // "/genapi.php/files/" group of endpoints
                     $filesController = new FilesController();
@@ -86,7 +94,7 @@ class FunctionController extends \NamespaceBase\BaseController
                     $headersController->handle();
                     break;
                 case "TEST":
-                    // "/genapi.ph$testController = new TestController();
+                    // "/genapi.php/test/" Endpoint - test endpoint
                     $testController = new TestController();
                     $testController->handle();
                     break;

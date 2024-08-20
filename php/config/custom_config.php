@@ -6,5 +6,6 @@ return [
     'mariadb_password' => 'dbpass1234',
     'mariadb_database' => 'nextcloud',
     'nextcloud_base' => 'http://localhost',
+    'app_password_duration' => 60,
     ];
 ?>
