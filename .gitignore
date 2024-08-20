@@ -1,8 +1,10 @@
-# test file
-test*.php
-
 # shell scripts
-*.sh
+php/*.sh
 
 # vscode directory
 .vscode/*
+
+#builds for deployment
+*/dist/*
+dist/*
+VERSION
