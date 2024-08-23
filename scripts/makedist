@@ -1,13 +1,10 @@
-#! /bin/bash
-#
-# makedist:  build the package's python-based distributions
 #
 # This script is designed to run without any arguments: this will build
-# all of the python distributions.  Restricting the build to specific
+# all of the available distributions.  Restricting the build to specific
 # distributions can be done by listing the names of the desired distributions
 # on the command line.
 #
-# There is currently only one python distribution: pdr-publish
+# There is currently only one PHP distribution: nextcloud-api
 #
 # SYNOPSIS
 #    makedist [OPTIONS] [DISTNAME ...]
@@ -24,7 +21,10 @@
 #                             with other similar packages to avoid redundant 
 #                             re-building.
 #    -v VER, --version=VER    assign VER as the VERSION for this product
-#    
+#
+# DISTNAMES
+#    nextcloud-api
+#   
 
 set -e
 prog=`basename $0`
