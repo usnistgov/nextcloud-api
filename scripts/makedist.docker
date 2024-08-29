@@ -3,24 +3,28 @@
 # makedist.docker -- make all components from this repo via the docker containers
 #                    defined in the docker directory.
 #
-# Usage: makedist.docker [--dist-dir=DIR] [python|angular|DISTNAME ...]
+# Usage: makedist.docker [--dist-dir=DIR] [DISTNAME ...]
 #
 # where:
 #   --dist-dir=DIR     write component distributions to the given directory
 #                      (instead of the default directory, dist)
-#   python             build only the python-based distributions
-#   angular            build only the angular-based distributions
-#   java               build only the java-based distributions 
-#   DISTNAME           build only the named distributions; DISTNAME can be
-#                      pdr-lps or pdr-publish
+#   DISTNAME           build only the named distributions; currently, the 
+#                      only supported value is "nextcloud-api"
 #
 prog=`basename $0`
 execdir=`dirname $0`
 [ "$execdir" = "" -o "$execdir" = "." ] && execdir=$PWD
-export CODEDIR=`(cd $execdir/.. > /dev/null 2>&1; pwd)`
-export DOCKERDIR=$CODEDIR/docker
+export PACKAGE_DIR=`(cd $execdir/.. > /dev/null 2>&1; pwd)`
 
+# NOTE:  Building a distribution for this component is trivial requires no
+#        dependencies; thus, Docker is not needed.  This script will switch
+#        directly to makedist instead.
+#
+# export DOCKERDIR=$PACKAGE_DIR/docker
 # $DOCKERDIR/dockbuild.sh
+
 # Run the main makedist in the dockerdir
-echo "Run makedist for nextcloud-api"
-exec $DOCKERDIR/makedist "$@"
+echo "Note: Docker not needed for dependency-free building of this component"
+echo "      Delegating directly to makedist for nextcloud-api"
+echo "+" $DOCKERDIR/makedist "$@"
+exec $execdir/makedist "$@"
