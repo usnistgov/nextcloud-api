@@ -1,6 +1,3 @@
-#! /bin/bash
-#
-# makedist:  build the package's python-based distributions
 #
 # This script is designed to run without any arguments: this will build
 # all of the available distributions.  Restricting the build to specific
@@ -27,7 +24,7 @@
 #
 # DISTNAMES
 #    nextcloud-api
-#    
+
 
 set -e
 prog=`basename $0`

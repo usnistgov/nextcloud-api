@@ -26,3 +26,10 @@ sudo -u www-data php -dmemory_limit=512M occ app:install user_saml
 sudo -u www-data php -dmemory_limit=512M occ app:enable user_saml
 
 echo "SSO & SAML have been configured."
+
+IFS=:; set -o noglob; IDX=0
+for DOMAIN in $NEXTCLOUD_TRUSTED_DOMAINS""; do
+    sudo -u www-data php -dmemory_limit=512M \
+                     occ config:system:set trusted_domains $IDX --value=$DOMAIN
+    IDX=$((IDX+1))
+done
