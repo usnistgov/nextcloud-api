@@ -9,6 +9,8 @@ require_once __DIR__ . "/endpoints/GroupsController.php";
 require_once __DIR__ . "/endpoints/HeadersController.php";
 require_once __DIR__ . "/endpoints/TestController.php";
 require_once __DIR__ . "/endpoints/UsersController.php";
+require_once __DIR__ . "/endpoints/AuthController.php";
+
 
 class FunctionController extends \NamespaceBase\BaseController
 {
@@ -18,6 +20,7 @@ class FunctionController extends \NamespaceBase\BaseController
      * uri positions                0   1          2          3                   4+
      *
      * {resource} can be one of the following
+     * - Auth
      * - Files
      * - Users
      * - Groups
@@ -28,34 +31,6 @@ class FunctionController extends \NamespaceBase\BaseController
     public function __construct()
     {
         parent::__construct();
-        $this->verifyClientCertificate();
-    }
-
-    private function verifyClientCertificate()
-    {
-        # Check Valid Client Certificate
-        if (!isset($_SERVER['SSL_CLIENT_VERIFY']) || $_SERVER['SSL_CLIENT_VERIFY'] !== 'SUCCESS') {
-            header('HTTP/1.1 403 Forbidden');
-            echo json_encode(['error' => 'Client certificate verification failed']);
-            exit();
-        }
-
-        # Check CN
-        $config = require $configFilePath;
-        $expectedCN = $config['expected_cn'];
-        if (isset($_SERVER['SSL_CLIENT_S_DN_CN'])) {
-            $clientCN = $_SERVER['SSL_CLIENT_S_DN_CN'];
-            if ($clientCN !== $expectedCN) {
-                header('HTTP/1.1 403 Forbidden');
-                echo json_encode(['error' => 'Client certificate CN is not valid']);
-                exit();
-            }
-        } else {
-            header('HTTP/1.1 403 Forbidden');
-            echo json_encode(['error' => 'Client certificate CN not found']);
-            exit();
-        }
-        
     }
 
     public function getOarApiLogin()
@@ -88,6 +63,11 @@ class FunctionController extends \NamespaceBase\BaseController
 
         try {
             switch ($resource) {
+                case "AUTH":
+                    // "/genapi.php/auth" endpoint
+                    $authController =  new AuthController();
+                    $authController->handle();
+                    break;
                 case "FILES":
                     // "/genapi.php/files/" group of endpoints
                     $filesController = new FilesController();
@@ -114,7 +94,7 @@ class FunctionController extends \NamespaceBase\BaseController
                     $headersController->handle();
                     break;
                 case "TEST":
-                    // "/genapi.ph$testController = new TestController();
+                    // "/genapi.php/test/" Endpoint - test endpoint
                     $testController = new TestController();
                     $testController->handle();
                     break;
