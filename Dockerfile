@@ -1,4 +1,4 @@
-FROM nextcloud:apache
+FROM nextcloud:28.0-apache
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -26,6 +26,13 @@ RUN a2enmod rewrite headers ssl
 COPY 000-default.conf /etc/apache2/sites-available/000-default.conf
 COPY default-ssl.conf /etc/apache2/sites-available/default-ssl.conf
 COPY ports.conf /etc/apache2/ports.conf
+
+# Copy certificates to apache
+COPY ./ssl/certs/ca.crt /etc/ssl/certs/ca.crt
+COPY ./ssl/certs/server.crt /etc/ssl/certs/server.crt
+COPY ./ssl/private/ca.key /etc/ssl/private/ca.key
+COPY ./ssl/private/server.key /etc/ssl/private/server.key
+COPY ./ssl/private/passphrase-script.sh /etc/ssl/private/passphrase-script.sh
 
 # Add ServerName directive
 RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
