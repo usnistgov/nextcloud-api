@@ -24,6 +24,8 @@ RUN a2enmod rewrite headers ssl
 
 # Copy the Apache configuration
 COPY 000-default.conf /etc/apache2/sites-available/000-default.conf
+COPY default-ssl.conf /etc/apache2/sites-available/default-ssl.conf
+COPY ports.conf /etc/apache2/ports.conf
 
 # Add ServerName directive
 RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
