@@ -1,4 +1,4 @@
-FROM nextcloud:28.0-apache
+FROM nextcloud:28-apache
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -28,10 +28,11 @@ COPY default-ssl.conf /etc/apache2/sites-available/default-ssl.conf
 COPY ports.conf /etc/apache2/ports.conf
 
 # Copy certificates to apache
-COPY ./ssl/certs/ca.crt /etc/ssl/certs/ca.crt
-COPY ./ssl/certs/server.crt /etc/ssl/certs/server.crt
 COPY ./ssl/private/ca.key /etc/ssl/private/ca.key
 COPY ./ssl/private/server.key /etc/ssl/private/server.key
+COPY ./ssl/certs/ca.crt /etc/ssl/certs/ca.crt
+COPY ./ssl/certs/ca.srl /etc/ssl/certs/ca.srl
+COPY ./ssl/certs/server.crt /etc/ssl/certs/server.crt
 COPY ./ssl/private/passphrase-script.sh /etc/ssl/private/passphrase-script.sh
 
 # Add ServerName directive
@@ -40,8 +41,18 @@ RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
 # Adjust permissions
 RUN chown -R www-data:www-data /var/www/
 
+# Enable SSL module
+RUN a2enmod ssl
+
+# Enable default-ssl
+RUN a2ensite default-ssl.conf
+
 # Return to root directory
 WORKDIR /var/www/html
 
 # Adjust scripts permissions
 RUN chmod +x /var/www/api/scripts/*
+RUN chmod 700 /etc/ssl/private/passphrase-script.sh
+
+# Start Apache in the foreground (for the running container)
+CMD ["apache2-foreground"]
