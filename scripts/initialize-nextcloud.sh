@@ -35,12 +35,6 @@ sudo -u www-data php -dmemory_limit=512M occ app:enable user_saml
 
 echo "SSO & SAML have been configured."
 
-echo "Configuring for use behind the proxy server"
-sudo -u www-data php -dmemory_limit=512M \
-                 occ config:system:set overwritewebroot --value=/fm/nc
-sudo -u www-data php -dmemory_limit=512M \
-                 occ config:system:set overwriteprotocol --value=https
-
 IFS=:; set -o noglob; IDX=0
 for DOMAIN in $NEXTCLOUD_TRUSTED_DOMAINS""; do
     sudo -u www-data php -dmemory_limit=512M \
