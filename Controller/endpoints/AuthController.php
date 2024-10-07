@@ -41,9 +41,9 @@ class AuthController extends \NamespaceBase\BaseController
                      * "-X POST /auth" Endpoint - creates temporary password for a user based on client certificate CN
                      */
                     if (count($arrQueryUri) == 4) {
-                        $this->logger->info("AUTHENTICATION");
+                        $this->logger->info("Certs", ['server vars' => $_SERVER]);
                         // Check if a certificate is provided
-                        if (!isset($_FILES['crt']) || !file_exists($_FILES['crt']['tmp_name'])) {
+                        if (!isset($_SERVER['SSL_CLIENT_CERT'])) {
                             $this->sendError400Output("Certificate file is missing.");
                             return;
                         }
@@ -56,19 +56,6 @@ class AuthController extends \NamespaceBase\BaseController
 
                         // Get the client's certificate
                         $cert = $_SERVER['SSL_CLIENT_CERT'];
-                        $this->logger->info("Client certificate", ['cert' => $cert]);
-
-                        // // Read the client certificate file
-                        // $cert = trim(file_get_contents($_FILES['crt']['tmp_name']));
-                        // $this->logger->info("Certificate Content", ['cert' => $cert]);
-
-                        // Validate the certificate
-                        // $isValid = $this->validateClientCert($cert);
-                        // $this->logger->info("isValid?", ['is it valid?' => $isValid]);
-                        // if ($isValid === false) {
-                        //     $this->sendError400Output("Certificate is not valid for this server.");
-                        //     return;
-                        // }
 
                         // Extract CN from the certificate
                         $cn = $this->getCommonNameFromCert($cert);
@@ -91,39 +78,6 @@ class AuthController extends \NamespaceBase\BaseController
         } catch (\Exception $e) {
             $this->logger->error("Exception occurred in auth handle method", ['exception' => $e->getMessage()]);
             return $this->sendError400Output($e->getMessage());
-        }
-    }
-
-    // private function validateClientCert($cert)
-    // {    
-    //     // Convert certificate string to resource
-    //     $certResource = openssl_x509_read($cert);
-    //     if ($certResource === false) {
-    //         $this->logger->error("Failed to read certificate.");
-    //         return false;
-    //     }
-
-    //     $this->logger->info("certResource is true");
-    
-    //     // Verify that the client certificate was issued by our CA
-    //     $isValid = openssl_x509_checkpurpose($certResource, X509_PURPOSE_SSL_CLIENT, ['/etc/ssl/certs/ca.crt']);
-    //     $this->logger->info("isValid value", ['isValid' => $isValid]); // Log whether it's false or -1
-
-        
-    //     return $isValid;
-    // }
-    
-    
-
-    private function getCommonNameFromCert($cert)
-    {
-        $certInfo = openssl_x509_parse($cert);
-        $this->logger->info("info certificate", ['info' => $certInfo]);
-        if ($certInfo && isset($certInfo['subject']['CN'])) {
-            $this->logger->info("CN of the certificate", ['CN' => $certInfo['subject']['CN']]);
-            return $certInfo['subject']['CN'];
-        } else {
-            return false;
         }
     }
 
