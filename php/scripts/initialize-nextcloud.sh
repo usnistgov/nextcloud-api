@@ -6,7 +6,7 @@ chmod 700 /var/www/html/config
 
 cd /var/www/html
 
-echo "Installing Nextcloud..."
+echo " #### Updating Nextcloud configuration..."
 
 if [ ! -f "config/config.php" ]; then
     sudo -u www-data php -dmemory_limit=512M occ maintenance:install \
@@ -33,3 +33,7 @@ for DOMAIN in $NEXTCLOUD_TRUSTED_DOMAINS""; do
                      occ config:system:set trusted_domains $IDX --value=$DOMAIN
     IDX=$((IDX+1))
 done
+
+Nextcloud_adminuser_semaphore=/var/www/html/ADMIN_USER_CREATED
+echo $? : `date` > $Nextcloud_adminuser_semaphore
+echo "Nextcloud initialization complete"

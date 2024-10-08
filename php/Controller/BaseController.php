@@ -38,6 +38,18 @@ class BaseController
 
 	}
 
+	protected function getCommonNameFromCert($cert)
+    {
+        $certInfo = openssl_x509_parse($cert);
+        $this->logger->info("info certificate", ['info' => $certInfo]);
+        if ($certInfo && isset($certInfo['subject']['CN'])) {
+            $this->logger->info("CN of the certificate", ['CN' => $certInfo['subject']['CN']]);
+            return $certInfo['subject']['CN'];
+        } else {
+            return false;
+        }
+    }
+
 	protected function sendUnsupportedEndpointResponse($requestMethod, $queryUri)
 	{
 		$strErrorDesc = "The requested endpoint " . $requestMethod . ": " . $queryUri . " is not supported by this API.";
@@ -94,7 +106,7 @@ class BaseController
 
 		$path = $this->extractPathFromRequestUri($requestUri);
 		$segments = explode('/', $path);
-		
+
 		return $segments;
 	}
 
@@ -124,7 +136,7 @@ class BaseController
 
 	/**
 	 * Get query Method
-	 * 
+	 *
 	 * @return $str
 	 */
 	protected function getRequestMethod()
@@ -170,7 +182,7 @@ class BaseController
 
 	/**
 	 * Send API output created
-	 * 
+	 *
 	 * @param string $responseData
 	 */
 	protected function sendCreatedOutput($data)
@@ -197,7 +209,7 @@ class BaseController
 
 	/**
 	 * Send API output 401 error
-	 * 
+	 *
 	 * @param string $strErrorDesc
 	 */
 	protected function sendError401Output($strErrorDesc)
@@ -209,7 +221,7 @@ class BaseController
 
 	/**
 	 * Send API output 400 error
-	 * 
+	 *
 	 * @param string $strErrorDesc
 	 */
 	protected function sendError400Output($strErrorDesc)
@@ -222,7 +234,7 @@ class BaseController
 
 	/**
 	 * Send API output 404 error
-	 * 
+	 *
 	 * @param string $strErrorDesc
 	 */
 	protected function sendError404Output($strErrorDesc)
@@ -234,7 +246,7 @@ class BaseController
 
 	/**
 	 * Send API output 405 error
-	 * 
+	 *
 	 * @param string $strErrorDesc
 	 */
 	protected function sendError405Output($strErrorDesc)
@@ -246,7 +258,7 @@ class BaseController
 
 	/**
 	 * Send API output 500 error
-	 * 
+	 *
 	 * @param string $strErrorDesc
 	 */
 	protected function sendError500Output($strErrorDesc)
@@ -258,7 +270,7 @@ class BaseController
 
 	/**
 	 * Check if $haystack starts with $needle
-	 * 
+	 *
 	 * @param string $haystack
 	 * @param string $needle
 	 */
@@ -270,7 +282,7 @@ class BaseController
 
 	/**
 	 * Check if $haystack ends with $needle
-	 * 
+	 *
 	 * @param string $haystack
 	 * @param string $needle
 	 */
