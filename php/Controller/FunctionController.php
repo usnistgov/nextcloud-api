@@ -116,39 +116,32 @@ class FunctionController extends \NamespaceBase\BaseController
      */
     private function isAuthenticated()
     {
-        // Check if a client certificate is provided
-        if (!isset($_SERVER['SSL_CLIENT_CERT'])) {
-            $this->sendError401Output("Client certificate is missing.");
-            return false;
-        }
 
-        // Check if Apache validated the client certificate
-        if (!isset($_SERVER['SSL_CLIENT_VERIFY']) || $_SERVER['SSL_CLIENT_VERIFY'] !== 'SUCCESS') {
+        $clientVerify = $_SERVER['HTTP_X_CLIENT_VERIFY'] ?? null;
+        $clientCN = $_SERVER['HTTP_X_CLIENT_CN'] ?? null;
+      
+        // Check if client verification succeeded
+        if ($clientVerify !== 'SUCCESS') {
             $this->sendError401Output("Client certificate verification failed.");
             return false;
         }
-
-        // Get the client's certificate
-        $cert = $_SERVER['SSL_CLIENT_CERT'];
-
-        // Extract CN from the certificate
-        $cn = $this->getCommonNameFromCert($cert);
-
-        if (!$cn) {
-            $this->sendError401Output("Unable to extract CN from certificate.");
+    
+        // Check if the client CN is provided
+        if (!$clientCN) {
+            $this->sendError401Output("Client CN is missing.");
             return false;
         }
 
         $superuserUsername = parent::$oar_api_usr;
 
         // Check if the CN from the certificate matches the admin username
-        if ($cn !== $superuserUsername) {
+        if ($clientCN !== $superuserUsername) {
             $this->sendError401Output("CN does not match the superuser admin username.");
             return false;
         }
 
         // If the CN matches, allow access
-        $this->logger->info("User authenticated as admin via certificate CN match.", ['CN' => $cn]);
+        $this->logger->info("User authenticated as admin via certificate CN match.", ['CN' => $clientCN]);
         return true;
     }
 

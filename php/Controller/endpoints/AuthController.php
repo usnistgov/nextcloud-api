@@ -42,27 +42,28 @@ class AuthController extends \NamespaceBase\BaseController
                      */
                     if (count($arrQueryUri) == 4) {
                         $this->logger->info("Certs", ['server vars' => $_SERVER]);
-                        // Check if a certificate is provided
-                        if (!isset($_SERVER['SSL_CLIENT_CERT'])) {
-                            $this->sendError400Output("Certificate file is missing.");
+
+                        // Access the headers directly
+                        $clientVerify = $_SERVER['HTTP_X_CLIENT_VERIFY'] ?? null;
+                        $clientCN = $_SERVER['HTTP_X_CLIENT_CN'] ?? null;
+
+                        // Check if client verification succeeded
+                        if ($clientVerify !== 'SUCCESS') {
+                            $this->sendError401Output("Client certificate verification failed.");
                             return;
                         }
 
-                        // Check if Apache validated the client certificate
-                        if (!isset($_SERVER['SSL_CLIENT_VERIFY']) || $_SERVER['SSL_CLIENT_VERIFY'] !== 'SUCCESS') {
-                            $this->sendError400Output("Client certificate verification failed.");
+                        // Check if the client CN is provided
+                        if (!$clientCN) {
+                            $this->sendError401Output("Client CN is missing.");
                             return;
                         }
 
-                        // Get the client's certificate
-                        $cert = $_SERVER['SSL_CLIENT_CERT'];
-
-                        // Extract CN from the certificate
-                        $cn = $this->getCommonNameFromCert($cert);
+                        $this->logger->info("Client authenticated", ['CN' => $clientCN]);
 
                         // Check if the CN matches a user in the system
-                        if ($this->verifyUserExists($cn)) {
-                            $this->createTemporaryPassword($cn);
+                        if ($this->verifyUserExists($clientCN)) {
+                            $this->createTemporaryPassword($clientCN);
                         } else {
                             $this->sendError404Output("Certificate is valid, but no matching user found.");
                         }
@@ -101,7 +102,7 @@ class AuthController extends \NamespaceBase\BaseController
             }
             $this->logger->info("User exists", ['User' => $user]);
 
-            // Retrieve normal nextcloud user
+            // Retrieve normal Nextcloud user
             $userManager = \OC::$server->getUserManager();
             $this->logger->info("UserManager retrieved", ['User' => $user]);
             $userObject = $userManager->get($user);
@@ -143,7 +144,6 @@ class AuthController extends \NamespaceBase\BaseController
                 $userObject = $userManager->get($user);
                 $this->logger->info("User Object after SAML backend load", ['User' => $userObject]);
             }
-
 
             if ($userObject === null) {
                 $this->logger->error("User does not exist in any backend", ['User' => $user]);
@@ -194,7 +194,7 @@ class AuthController extends \NamespaceBase\BaseController
 
     private function verifyUserExists($user)
     {
-        $command = parent::$occ . " user:info " . $user . " --output json";
+        $command = parent::$occ . " user:info " . escapeshellarg($user) . " --output json";
         exec($command, $output, $returnVar);
         if ($returnVar === 0 && !empty($output)) {
             return true;

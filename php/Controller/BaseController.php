@@ -38,18 +38,6 @@ class BaseController
 
 	}
 
-	protected function getCommonNameFromCert($cert)
-    {
-        $certInfo = openssl_x509_parse($cert);
-        $this->logger->info("info certificate", ['info' => $certInfo]);
-        if ($certInfo && isset($certInfo['subject']['CN'])) {
-            $this->logger->info("CN of the certificate", ['CN' => $certInfo['subject']['CN']]);
-            return $certInfo['subject']['CN'];
-        } else {
-            return false;
-        }
-    }
-
 	protected function sendUnsupportedEndpointResponse($requestMethod, $queryUri)
 	{
 		$strErrorDesc = "The requested endpoint " . $requestMethod . ": " . $queryUri . " is not supported by this API.";
