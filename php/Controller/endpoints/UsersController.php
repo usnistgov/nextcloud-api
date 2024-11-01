@@ -98,15 +98,22 @@ class UsersController extends \NamespaceBase\BaseController
     {
         $command = parent::$occ . " user:info " . $user . " --output json";
         exec($command, $output, $returnVar);
-        if ($returnVar === 0 && !empty($output)) {
+        if (!empty($output)) {
+          if ($returnVar === 0) {
             $userJsonString = $output[0];
             $userInfo = json_decode($userJsonString, true);
             $this->logger->info("Retrieved user info successfully.", ['user' => $user]);
             return $this->sendOkayOutput(json_encode($userInfo));
-        } else {
-            $this->logger->error("Failed to retrieve user info.", ['user' => $user]);
-            return $this->sendError500Output("Failed to retrieve user info for " . $user);
+          } else if (str_contains($output[0], "not found")) {
+            // user does not exist
+            $this->logger->info("Requested user does not exist", ['user' => $user]);
+            return $this->sendError404Output("User does not exist");
+          }
         }
+
+        // Unexpected error
+        $this->logger->error("Unexpected error retrieving user info.", ['user' => $user]);
+        return $this->sendError500Output("Failed to retrieve user info for " . $user);
     }
 
     /**
