@@ -36,9 +36,13 @@ sudo -u $OAR_OP_USER php -dmemory_limit=512M occ maintenance:install \
 --admin-pass "${NEXTCLOUD_ADMIN_PASSWORD}"
 # fi
 
-echo "Downloading and enabling SSO & SAML app..."
+# Enable and configure the External Storage app
+echo "Enabling External Storage app..."
+sudo -u $OAR_OP_USER php -dmemory_limit=512M occ app:install files_external
+sudo -u $OAR_OP_USER php -dmemory_limit=512M occ app:enable files_external
 
 # Enable the SSO & SAML app
+echo "Downloading and enabling SSO & SAML app..."
 sudo -u $OAR_OP_USER php -dmemory_limit=512M occ app:install user_saml
 sudo -u $OAR_OP_USER php -dmemory_limit=512M occ app:enable user_saml
 
