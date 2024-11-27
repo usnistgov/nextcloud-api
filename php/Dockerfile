@@ -7,8 +7,10 @@ RUN apt-get update && \
                      ca-certificates numactl \
                      python3 python3-pip python3-dev python3-yaml uwsgi uwsgi-src \
                      byobu curl git htop man unzip vim wget &&  \
-                     smbclient php-smbclient && \
-  rm -rf /var/lib/apt/lists/*
+                     smbclient libsmbclient-dev php-dev pkg-config git unzip nano && \
+                     pecl install smbclient && \
+                     echo "extension=smbclient.so" > /usr/local/etc/php/conf.d/smbclient.ini && \
+  apt-get clean && rm -rf /var/lib/apt/lists/*
 RUN locale-gen en_US; locale-gen en_US.UTF-8
 
 # Install Composer
