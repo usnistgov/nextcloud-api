@@ -72,6 +72,10 @@ RUN chown -R $opuser:$opuser /var/www
 # COPY entrypoint.sh.dbg /entrypoint.sh
 COPY isready.sh /docker-entrypoint-hooks.d/before-starting/
 
+# Copy the custom php.ini file
+COPY php.ini-development /usr/local/etc/php/php.ini-development
+COPY php.ini-production /usr/local/etc/php/php.ini-production
+
 # Return to root directory
 WORKDIR /var/www/html
 
