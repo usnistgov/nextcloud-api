@@ -209,10 +209,34 @@ class FilesController extends \NamespaceBase\BaseController
             ],
         ]);
 
+        $raw = (string) $resp->getBody();
+
         // Decode JSON response into a PHP array
-        $decoded = json_decode((string) $resp->getBody(), true);
+        $decoded = json_decode($raw, true);
         // Only return list of shares (or empty array)
-        return $decoded['ocs']['data'] ?? [];
+        if (is_array($decoded)) {
+            return $decoded['ocs']['data'] ?? [];
+        }
+
+        // Fallback
+        $xml = @simplexml_load_string($raw);
+        if ($xml === false) {
+            // If we cannot parse response
+            throw new \RuntimeException("OCS shares response was neither JSON nor parseable XML.");
+        }
+
+        // Convert XML to an array structure similar to JSON
+        $jsonLike = json_decode(json_encode($xml), true);
+
+        // Normalize to a list
+        $data = $jsonLike['data'] ?? [];
+        if ($data === '') {
+            return [];
+        }
+        if (isset($data['id'])) {
+            return [$data];
+        }
+        return is_array($data) ? $data : [];
     }
 
     /**
