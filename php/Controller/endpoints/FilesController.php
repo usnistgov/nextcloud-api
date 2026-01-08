@@ -662,7 +662,7 @@ class FilesController extends \NamespaceBase\BaseController
                     'OCS-APIRequest' => 'true',
                 ],
                 'query' => [
-                    'path' => '/' . $dir,
+                    'path' => $this->normalizeNcPath($dir),
                     'reshares' => 'true',
                 ],
             ]);
