@@ -54,10 +54,8 @@ class FilesController extends \NamespaceBase\BaseController
                         $this->postFile($localFilePath, $destinationPath);
                     } elseif ($arrQueryUri[4] == "directory") {
                         // "/genapi.php/files/directory/{directory name}" Endpoint - creates directory
-                        $dir = $arrQueryUri[5];
-                        for ($i = 6; $i < count($arrQueryUri); $i++) {
-                            $dir .= "/" . $arrQueryUri[$i];
-                        }
+                        $dir = $this->joinDecodedSegments($arrQueryUri, 5);
+
                         $this->postDirectory($dir);
                     } elseif ($arrQueryUri[4] == "userpermissions") {
                         // "/genapi.php/files/userpermissions/{user}/{permissions}/{directory}" Endpoint - share directory with user with permissions
@@ -130,17 +128,13 @@ class FilesController extends \NamespaceBase\BaseController
                         $this->getFile($filepath);
                     } else if ($arrQueryUri[4] == "directory") {
                         // "/genapi.php/files/directory/{directory name}" Endpoint - get directory info
-                        $dir = $arrQueryUri[5];
-                        for ($i = 6; $i < count($arrQueryUri); $i++) {
-                            $dir .= "/" . $arrQueryUri[$i];
-                        }
+                        $dir = $this->joinDecodedSegments($arrQueryUri, 5);
+
                         $this->getDirectory($dir);
                     } elseif ($arrQueryUri[4] == "userpermissions") {
                         // "/genapi.php/files/userpermissions/{directory}" Endpoint - Get users with permissions to directory
-                        $dir = $arrQueryUri[5];
-                        for ($i = 6; $i < count($arrQueryUri); $i++) {
-                            $dir .= "/" . $arrQueryUri[$i];
-                        }
+                        $dir = $this->joinDecodedSegments($arrQueryUri, 5);
+
                         $this->getUserPermissions($dir);
                     } else {
                         return $this->sendUnsupportedEndpointResponse($requestMethod, $queryUri);
@@ -149,10 +143,8 @@ class FilesController extends \NamespaceBase\BaseController
                 case "DELETE":
                     if ($arrQueryUri[4] == "directory") {
                         // "/genapi.php/files/directory/{directory name}" Endpoint - delete directory
-                        $dir = $arrQueryUri[5];
-                        for ($i = 6; $i < count($arrQueryUri); $i++) {
-                            $dir .= "/" . $arrQueryUri[$i];
-                        }
+                        $dir = $this->joinDecodedSegments($arrQueryUri, 5);
+
                         $this->deleteDirectory($dir);
                     } elseif ($arrQueryUri[4] == "userpermissions") {
                         // "/genapi.php/files/userpermissions/{user}/{directory}" Endpoint - Remove all user permissions to directory
@@ -270,6 +262,16 @@ class FilesController extends \NamespaceBase\BaseController
         }
         return null;
     }
+
+    private function joinDecodedSegments(array $segments, int $startIndex): string
+    {
+        $out = urldecode($segments[$startIndex] ?? '');
+        for ($i = $startIndex + 1; $i < count($segments); $i++) {
+            $out .= "/" . urldecode($segments[$i] ?? '');
+        }
+        return $out;
+    }
+
 
     /**
      * Create or update permissions for a recipient (user or group) on a folder path.
@@ -688,6 +690,7 @@ class FilesController extends \NamespaceBase\BaseController
                 'query' => [
                     'path' => $this->normalizeNcPath($dir),
                     'reshares' => 'true',
+                    'format' => 'json',
                 ],
             ]);
 
