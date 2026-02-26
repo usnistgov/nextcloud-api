@@ -1,7 +1,7 @@
 FROM nextcloud:apache
 
 # Install Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+COPY --from=composer:2.8.6 /usr/bin/composer /usr/bin/composer
 
 # Install mysqli extension
 RUN docker-php-ext-install mysqli
