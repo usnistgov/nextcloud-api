@@ -54,10 +54,8 @@ class FilesController extends \NamespaceBase\BaseController
                         $this->postFile($localFilePath, $destinationPath);
                     } elseif ($arrQueryUri[4] == "directory") {
                         // "/genapi.php/files/directory/{directory name}" Endpoint - creates directory
-                        $dir = $arrQueryUri[5];
-                        for ($i = 6; $i < count($arrQueryUri); $i++) {
-                            $dir .= "/" . $arrQueryUri[$i];
-                        }
+                        $dir = $this->joinDecodedSegments($arrQueryUri, 5);
+
                         $this->postDirectory($dir);
                     } elseif ($arrQueryUri[4] == "userpermissions") {
                         // "/genapi.php/files/userpermissions/{user}/{permissions}/{directory}" Endpoint - share directory with user with permissions
@@ -130,17 +128,13 @@ class FilesController extends \NamespaceBase\BaseController
                         $this->getFile($filepath);
                     } else if ($arrQueryUri[4] == "directory") {
                         // "/genapi.php/files/directory/{directory name}" Endpoint - get directory info
-                        $dir = $arrQueryUri[5];
-                        for ($i = 6; $i < count($arrQueryUri); $i++) {
-                            $dir .= "/" . $arrQueryUri[$i];
-                        }
+                        $dir = $this->joinDecodedSegments($arrQueryUri, 5);
+
                         $this->getDirectory($dir);
                     } elseif ($arrQueryUri[4] == "userpermissions") {
                         // "/genapi.php/files/userpermissions/{directory}" Endpoint - Get users with permissions to directory
-                        $dir = $arrQueryUri[5];
-                        for ($i = 6; $i < count($arrQueryUri); $i++) {
-                            $dir .= "/" . $arrQueryUri[$i];
-                        }
+                        $dir = $this->joinDecodedSegments($arrQueryUri, 5);
+
                         $this->getUserPermissions($dir);
                     } else {
                         return $this->sendUnsupportedEndpointResponse($requestMethod, $queryUri);
@@ -149,10 +143,8 @@ class FilesController extends \NamespaceBase\BaseController
                 case "DELETE":
                     if ($arrQueryUri[4] == "directory") {
                         // "/genapi.php/files/directory/{directory name}" Endpoint - delete directory
-                        $dir = $arrQueryUri[5];
-                        for ($i = 6; $i < count($arrQueryUri); $i++) {
-                            $dir .= "/" . $arrQueryUri[$i];
-                        }
+                        $dir = $this->joinDecodedSegments($arrQueryUri, 5);
+
                         $this->deleteDirectory($dir);
                     } elseif ($arrQueryUri[4] == "userpermissions") {
                         // "/genapi.php/files/userpermissions/{user}/{directory}" Endpoint - Remove all user permissions to directory
@@ -169,6 +161,14 @@ class FilesController extends \NamespaceBase\BaseController
                             $filepath .= "/" . $arrQueryUri[$i];
                         }
                         $this->deleteFile($filepath);
+                    } elseif ($arrQueryUri[4] == "sharegroup") {
+                        // "/genapi.php/files/sharegroup/{group}/{directory}" Endpoint - Remove group permissions to directory
+                        $group = $arrQueryUri[5];
+                        $dir = $arrQueryUri[6];
+                        for ($i = 7; $i < count($arrQueryUri); $i++) {
+                            $dir .= "/" . $arrQueryUri[$i];
+                        }
+                        $this->deleteGroupPermissions($group, $dir);
                     } else {
                         return $this->sendUnsupportedEndpointResponse($requestMethod, $queryUri);
                     }
@@ -181,6 +181,195 @@ class FilesController extends \NamespaceBase\BaseController
             $this->logger->error("Exception occurred in handle method", ['exception' => $e->getMessage()]);
             return $this->sendError400Output($e->getMessage());
         }
+    }
+
+    private function normalizeNcPath(string $dir): string
+    {
+        return '/' . ltrim($dir, '/');
+    }
+
+    private function listSharesForPath(string $path): array
+    {
+        $resp = $this->guzzleClient->request('GET', "/ocs/v2.php/apps/files_sharing/api/v1/shares", [
+            'headers' => [
+                'OCS-APIRequest' => 'true',
+            ],
+            'query' => [
+                'path' => $path,
+                'reshares' => 'true',
+                'format' => 'json',
+            ],
+        ]);
+
+        $raw = (string) $resp->getBody();
+
+        // Decode JSON response into a PHP array
+        $decoded = json_decode($raw, true);
+        // Only return list of shares (or empty array)
+        if (is_array($decoded)) {
+            return $decoded['ocs']['data'] ?? [];
+        }
+
+        // Fallback
+        $xml = @simplexml_load_string($raw);
+        if ($xml === false) {
+            // If we cannot parse response
+            throw new \RuntimeException("OCS shares response was neither JSON nor parseable XML.");
+        }
+
+        // Convert XML to an array structure similar to JSON
+        $jsonLike = json_decode(json_encode($xml), true);
+
+        // Normalize to a list
+        $data = $jsonLike['data'] ?? [];
+        if ($data === '') {
+            return [];
+        }
+        if (isset($data['id'])) {
+            return [$data];
+        }
+        return is_array($data) ? $data : [];
+    }
+
+    /**
+     * Find an existing share ID for the given recipient (user or group) on a given path.
+     *
+     * shareType:
+     *   0 = user share
+     *   1 = group share
+     *
+     * shareWith:
+     *   username if shareType=0
+     *   group name if shareType=1
+     *
+    */
+    private function findShareIdForPathRecipient(string $path, int $shareType, string $shareWith): ?string
+    // There is no direct way to retrieve the right share with no confusion so we proceed by elemination
+    {
+        $shares = $this->listSharesForPath($path);
+
+        foreach ($shares as $share) {
+            // Ignore wrong share types
+            if ((int)($share['share_type'] ?? -1) !== $shareType) {
+                continue;
+            }
+            // Ignore wrong recipients
+            if (($share['share_with'] ?? '') !== $shareWith) {
+                continue;
+            }
+            // Ensure right share type AND right recipient id
+            return (string) $share['id'];
+        }
+        return null;
+    }
+
+    private function joinDecodedSegments(array $segments, int $startIndex): string
+    {
+        $out = urldecode($segments[$startIndex] ?? '');
+        for ($i = $startIndex + 1; $i < count($segments); $i++) {
+            $out .= "/" . urldecode($segments[$i] ?? '');
+        }
+        return $out;
+    }
+
+
+    /**
+     * Create or update permissions for a recipient (user or group) on a folder path.
+     */
+    private function savePermissionsForRecipient(string $shareWith, int $shareType, int $perm, string $dir)
+    {
+        $path = $this->normalizeNcPath($dir);
+
+        // Find existing share ID for this path and recipient
+        $existingShareId = $this->findShareIdForPathRecipient($path, $shareType, $shareWith);
+
+        // Update share if it exists
+        if ($existingShareId !== null) {
+            $resp = $this->guzzleClient->request('PUT', "/ocs/v2.php/apps/files_sharing/api/v1/shares/$existingShareId", [
+                'headers' => [
+                    'OCS-APIRequest' => 'true',
+                ],
+                'form_params' => [
+                    'permissions' => $perm,
+                ],
+            ]);
+
+            $this->logger->info("Permissions updated (no new share created)", [
+                'shareType' => $shareType,
+                'shareWith' => $shareWith,
+                'permissions' => $perm,
+                'dir' => $path,
+                'shareId' => $existingShareId,
+            ]);
+
+            return $this->sendOkayOutput($resp->getBody()->getContents());
+        }
+
+        // Create share if it doesn't exist
+        $resp = $this->guzzleClient->request('POST', "/ocs/v2.php/apps/files_sharing/api/v1/shares", [
+            'headers' => [
+                'OCS-APIRequest' => 'true',
+            ],
+            'form_params' => [
+                'shareType' => (string) $shareType,  // 0 user, 1 group
+                'path' => $path,
+                'shareWith' => $shareWith,
+                'permissions' => $perm,
+            ],
+        ]);
+
+        $this->logger->info("Permissions created (new share created)", [
+            'shareType' => $shareType,
+            'shareWith' => $shareWith,
+            'permissions' => $perm,
+            'dir' => $path,
+        ]);
+
+        return $this->sendCreatedOutput($resp->getBody()->getContents());
+    }
+
+    private function deletePermissionsForRecipient(string $shareWith, int $shareType, string $dir)
+    {
+        $path = $this->normalizeNcPath($dir);
+        $shares = $this->listSharesForPath($path);
+
+        $deleted = 0;
+        foreach ($shares as $share) {
+            if ((int)($share['share_type'] ?? -1) !== $shareType) {
+                continue;
+            }
+            if (($share['share_with'] ?? '') !== $shareWith) {
+                continue;
+            }
+
+            $shareId = $share['id'];
+
+            // DELETE the share record by id
+            $this->guzzleClient->request('DELETE', "/ocs/v2.php/apps/files_sharing/api/v1/shares/$shareId", [
+                'headers' => [
+                    'OCS-APIRequest' => 'true',
+                ],
+            ]);
+
+            $deleted++;
+        }
+
+        if ($deleted > 0) {
+            $this->logger->info("Permissions deleted successfully", [
+                'shareType' => $shareType,
+                'shareWith' => $shareWith,
+                'dir' => $path,
+                'deleted' => $deleted
+            ]);
+            return $this->sendOkayOutput(json_encode(['success' => true, 'deleted' => $deleted]));
+        }
+
+        $this->logger->warning("No matching share found to delete permissions", [
+            'shareType' => $shareType,
+            'shareWith' => $shareWith,
+            'dir' => $path
+        ]);
+        return $this->sendError404Output("No matching share found for recipient $shareWith on directory $path.");
     }
 
     /**
@@ -352,7 +541,6 @@ class FilesController extends \NamespaceBase\BaseController
         }
     }
 
-
     /**
      * "-X GET /files/directory/{directory name}" Endpoint - get directory info
      */
@@ -435,7 +623,6 @@ class FilesController extends \NamespaceBase\BaseController
         }
     }
 
-
     /**
      * "-X PUT /files/scan/directory/{directory path}" Endpoint - scan directory file system
      */
@@ -470,55 +657,25 @@ class FilesController extends \NamespaceBase\BaseController
         }
     }
 
-
-
     /**
      * "-X POST /files/userpermissions/{user}/{permissions}/{directory}" Endpoint - share file/folder with user with permissions
      */
     private function postUserPermissions($user, $perm, $dir)
     {
         try {
-            $response = $this->guzzleClient->request('POST', "/ocs/v2.php/apps/files_sharing/api/v1/shares", [
-                'headers' => [
-                    'OCS-APIRequest' => 'true',
-                ],
-                'form_params' => [
-                    'shareType' => '0',
-                    'path' => $dir,
-                    'shareWith' => $user,
-                    'permissions' => $perm,
-                ],
-            ]);
-
-            $this->logger->info("User permissions posted successfully", ['user' => $user, 'permissions' => $perm, 'dir' => $dir]);
-            $responseData = $response->getBody()->getContents();
-            return $this->sendCreatedOutput($responseData);
+            return $this->savePermissionsForRecipient($user, 0, (int)$perm, $dir);
         } catch (\GuzzleHttp\Exception\RequestException $e) {
-            $response = $e->getResponse();
-            $statusCode = $response ? $response->getStatusCode() : 0;
-            $responseBody = $response ? (string) $response->getBody() : '';
-
-            if ($statusCode === 404) {
-                if (strpos($responseBody, 'valid user') !== false) {
-                    $this->logger->error("Invalid user specified", ['user' => $user, 'error' => $e->getMessage()]);
-                    return $this->sendError404Output("Invalid user specified. Please specify a valid user.");
-                } else if (strpos($responseBody, 'folder does not exist') !== false) {
-                    $this->logger->error("Directory does not exist", ['dir' => $dir, 'error' => $e->getMessage()]);
-                    return $this->sendError404Output("Directory does not exist. Please specify a valid directory.");
-                } else {
-                    $this->logger->error("Failed to post user permissions", ['user' => $user, 'permissions' => $perm, 'dir' => $dir, 'error' => $e->getMessage()]);
-                    return $this->sendError404Output("Permission does not exist. Please specify a valid permission number.");
-                }
-            } else {
-                $this->logger->error("Failed to post user permissions", ['user' => $user, 'permissions' => $perm, 'dir' => $dir, 'error' => $e->getMessage()]);
-                return $this->sendError500Output("Failed to share file/folder with user. " . $e->getMessage());
-            }
+            $this->logger->error("Failed to set user permissions", [
+                'user' => $user, 'permissions' => $perm, 'dir' => $dir, 'error' => $e->getMessage()
+            ]);
+            return $this->sendError500Output("Failed to set user permissions. " . $e->getMessage());
         } catch (\GuzzleHttp\Exception\GuzzleException $e) {
-            $this->logger->error("Failed to post user permissions", ['user' => $user, 'permissions' => $perm, 'dir' => $dir, 'error' => $e->getMessage()]);
+            $this->logger->error("Failed to set user permissions", [
+                'user' => $user, 'permissions' => $perm, 'dir' => $dir, 'error' => $e->getMessage()
+            ]);
             return $this->sendError500Output("An unexpected error occurred. " . $e->getMessage());
         }
     }
-
 
     /**
      * "-X GET /files/userpermissions/{directory}" Endpoint - get users with permissions to file/folder
@@ -531,8 +688,9 @@ class FilesController extends \NamespaceBase\BaseController
                     'OCS-APIRequest' => 'true',
                 ],
                 'query' => [
-                    'path' => '/' . $dir,
+                    'path' => $this->normalizeNcPath($dir),
                     'reshares' => 'true',
+                    'format' => 'json',
                 ],
             ]);
 
@@ -550,47 +708,29 @@ class FilesController extends \NamespaceBase\BaseController
      */
     private function deleteUserPermissions($user, $dir)
     {
-        // Step 1: Retrieve the list of shares to find the relevant share ID
         try {
-            $response = $this->guzzleClient->request('GET', "/ocs/v2.php/apps/files_sharing/api/v1/shares", [
-                'headers' => [
-                    'OCS-APIRequest' => 'true',
-                ],
-                'query' => [
-                    'path' => '/' . $dir,
-                    'reshares' => 'true',
-                ],
-            ]);
-
-            $shares = json_decode($response->getBody()->getContents(), true);
-
-            // Assuming $shares contains an array of share information
-            foreach ($shares['ocs']['data'] as $share) {
-                if ($share['share_with'] === $user) {
-                    // Step 2: Delete the share using its ID
-                    $shareId = $share['id'];
-                    $deleteResponse = $this->guzzleClient->request('DELETE', "/ocs/v2.php/apps/files_sharing/api/v1/shares/$shareId", [
-                        'headers' => [
-                            'OCS-APIRequest' => 'true',
-                        ],
-                    ]);
-
-                    if ($deleteResponse->getStatusCode() == 200) {
-                        $this->logger->info("User permissions deleted successfully", ['user' => $user, 'dir' => $dir, 'shareId' => $shareId]);
-                        return $this->sendOkayOutput(json_encode(['success' => true, 'message' => "Share ID $shareId deleted."]));
-                    } else {
-                        $this->logger->error("Failed to delete user permissions", ['user' => $user, 'dir' => $dir, 'shareId' => $shareId]);
-                        return $this->sendError500Output("Failed to delete share ID $shareId.");
-                    }
-                }
-            }
-
-            // If no matching share was found
-            $this->logger->warning("No matching share found to delete user permissions", ['user' => $user, 'dir' => $dir]);
-            return $this->sendError404Output("No matching share found for user $user in directory $dir.");
+            return $this->deletePermissionsForRecipient($user, 0, $dir);
         } catch (GuzzleException $e) {
-            $this->logger->error("Failed to delete user permissions due to an exception", ['user' => $user, 'dir' => $dir, 'error' => $e->getMessage()]);
+            $this->logger->error("Failed to delete user permissions", [
+                'user' => $user,
+                'dir' => $dir,
+                'error' => $e->getMessage(),
+            ]);
             return $this->sendError500Output("Failed to retrieve or delete user permissions. " . $e->getMessage());
+        }
+    }
+
+    private function deleteGroupPermissions($group, $dir)
+    {
+        try {
+            return $this->deletePermissionsForRecipient($group, 1, $dir);
+        } catch (GuzzleException $e) {
+            $this->logger->error("Failed to delete group permissions", [
+                'group' => $group,
+                'dir' => $dir,
+                'error' => $e->getMessage(),
+            ]);
+            return $this->sendError500Output("Failed to retrieve or delete group permissions. " . $e->getMessage());
         }
     }
 
@@ -600,43 +740,16 @@ class FilesController extends \NamespaceBase\BaseController
     private function shareGroup($group, $perm, $dir)
     {
         try {
-            $response = $this->guzzleClient->request('POST', "/ocs/v2.php/apps/files_sharing/api/v1/shares", [
-                'headers' => [
-                    'OCS-APIRequest' => 'true',
-                ],
-                'form_params' => [
-                    'shareType' => '1',
-                    'path' => $dir,
-                    'shareWith' => $group,
-                    'permissions' => $perm,
-                ],
-            ]);
-
-            $this->logger->info("Directory shared with group successfully", ['group' => $group, 'permissions' => $perm, 'dir' => $dir]);
-            $responseData = $response->getBody()->getContents();
-            return $this->sendCreatedOutput($responseData);
+            return $this->savePermissionsForRecipient($group, 1, (int)$perm, $dir);
         } catch (\GuzzleHttp\Exception\RequestException $e) {
-            $response = $e->getResponse();
-            $statusCode = $response ? $response->getStatusCode() : 0;
-            $responseBody = $response ? (string) $response->getBody() : '';
-
-            if ($statusCode === 404) {
-                if (strpos($responseBody, 'valid group') !== false) {
-                    $this->logger->error("Invalid group specified", ['group' => $group, 'error' => $e->getMessage()]);
-                    return $this->sendError404Output("Invalid group specified. Please specify a valid group.");
-                } else if (strpos($responseBody, 'folder does not exist') !== false) {
-                    $this->logger->error("Directory does not exist", ['dir' => $dir, 'error' => $e->getMessage()]);
-                    return $this->sendError404Output("Directory does not exist. Please specify a valid directory.");
-                } else {
-                    $this->logger->error("Failed to share directory with group", ['group' => $group, 'permissions' => $perm, 'dir' => $dir, 'error' => $e->getMessage()]);
-                    return $this->sendError404Output("Permission does not exist. Please specify a valid permission number.");
-                }
-            } else {
-                $this->logger->error("Failed to share directory with group", ['group' => $group, 'permissions' => $perm, 'dir' => $dir, 'error' => $e->getMessage()]);
-                return $this->sendError500Output("Failed to share file/folder with group. " . $e->getMessage());
-            }
+            $this->logger->error("Failed to set group permissions", [
+                'group' => $group, 'permissions' => $perm, 'dir' => $dir, 'error' => $e->getMessage()
+            ]);
+            return $this->sendError500Output("Failed to set group permissions. " . $e->getMessage());
         } catch (\GuzzleHttp\Exception\GuzzleException $e) {
-            $this->logger->error("Failed to share directory with group", ['group' => $group, 'permissions' => $perm, 'dir' => $dir, 'error' => $e->getMessage()]);
+            $this->logger->error("Failed to set group permissions", [
+                'group' => $group, 'permissions' => $perm, 'dir' => $dir, 'error' => $e->getMessage()
+            ]);
             return $this->sendError500Output("An unexpected error occurred. " . $e->getMessage());
         }
     }
