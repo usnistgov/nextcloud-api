@@ -173,7 +173,7 @@ class AuthController extends \NamespaceBase\BaseController
                 $userObject->getUID(),
                 null, // user pwd is not required
                 $userAgent,
-                IToken::TEMPORARY_TOKEN,
+                IToken::PERMANENT_TOKEN,
                 IToken::DO_NOT_REMEMBER
             );
             $this->logger->info("Temporary password created successfully", ['User' => $user]);
